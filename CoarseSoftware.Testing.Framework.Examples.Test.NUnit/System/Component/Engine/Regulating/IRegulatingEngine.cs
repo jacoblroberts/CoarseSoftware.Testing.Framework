@@ -8,7 +8,9 @@
     }
 
     public class ResponseBase
-    { }
+    {
+        public int Number {  get; set; }
+    }
 
     public class RequestBase
     {

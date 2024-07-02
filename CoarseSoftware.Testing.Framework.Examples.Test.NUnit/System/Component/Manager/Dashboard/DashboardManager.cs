@@ -40,6 +40,29 @@ namespace CoarseSoftware.Testing.Framework.Examples.Test.System.Component.Manage
                 }
             }, cancellationToken);
 
+            if (regulatingEngineResponse.Data.Number == 1)
+            {
+                return new Response<OnStepActivateBase>
+                {
+                    Data = new DerivedOnStepActivate
+                    {
+                        RandomId = Guid.NewGuid().ToString(),
+                        StaticId = "IdNumber1"
+                    }
+                };
+            }
+            else if (regulatingEngineResponse.Data.Number == 2)
+            {
+                return new Response<OnStepActivateBase>
+                {
+                    Data = new DerivedOnStepActivate
+                    {
+                        RandomId = Guid.NewGuid().ToString(),
+                        StaticId = "IdNumber2"
+                    }
+                };
+            }
+
             var validatingEngineResponse = await validatingEngine.ValidateAsync(new Request<ValidatingEngineFacet.RequestBase>
             {
                 Data = new ValidatingEngineFacet.RequestBase { }

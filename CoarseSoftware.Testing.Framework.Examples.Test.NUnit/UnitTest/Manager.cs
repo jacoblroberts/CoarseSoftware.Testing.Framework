@@ -39,7 +39,7 @@
                 },
                 Operations = new List<TestCase.Operation>
                 {
-                    new TestCase.SingleOperation
+                    new TestCase.ServiceOperation
                     {
                         FacetType = typeof(RegulatingEngineFacet.IRegulatingEngine),
                         MethodName = "ApplyAsync",
@@ -53,86 +53,35 @@
                                 }
                             }
                         },
-                        Response = new TestCase.Response.MockResponse
-                        {
-                            Response = new Response<RegulatingEngineFacet.ResponseBase>
-                            {
-                                Data = new RegulatingEngineFacet.ResponseBase
-                                { }
-                            }
-                        },
-                        IngoredExpectedRequestPropertyNames = new string[] { }
-                    },
-                    new TestCase.SingleOperation
-                    {
-                        FacetType = typeof(ValidatingEngineFacet.IValidatingEngine),
-                        MethodName = "ValidateAsync",
-                        ExpectedRequest = new Request<ValidatingEngineFacet.RequestBase>
-                        {
-                            Data = new ValidatingEngineFacet.RequestBase
-                            { }
-                        },
+                        //Response = new TestCase.Response.MockResponse
+                        //{
+                        //    Response = new Response<RegulatingEngineFacet.ResponseBase>
+                        //    {
+                        //        Data = new RegulatingEngineFacet.ResponseBase
+                        //        { }
+                        //    }
+                        //},
                         Response = new TestCase.Response.ForkingResponse
                         {
-                            LeftFork = new TestCase.Response.ForkingResponse.ForkMockResponse
+                            LeftFork = new TestCase.Response.ForkingResponse.LeftForkResponse
                             {
-                                Reason = "Failed Validation",
-                                Response = new Response<ValidatingEngineFacet.ResponseBase>
+                                Reason = "number is 1",
+                                MockResponse = new Response<RegulatingEngineFacet.ResponseBase>
                                 {
-                                    Data = new ValidatingEngineFacet.ResponseBase
+                                    Data = new RegulatingEngineFacet.ResponseBase
                                     {
-                                        IsValid = false
-                                    }
-                                },
-                                Operations = new List<TestCase.Operation>
-                                {
-                                    new TestCase.SingleOperation
-                                    {
-                                        FacetType = typeof(TransformingEngineFacet.ITransformingEngine),
-                                        MethodName = "TransformAsync",
-                                        ExpectedRequest = new Request<TransformingEngineFacet.RequestBase>
-                                        {
-                                            Data = new TransformingEngineFacet.RequestBase
-                                            { }
-                                        },
-                                        Response = new TestCase.Response.MockResponse
-                                        {
-                                            Response = new Response<TransformingEngineFacet.ResponseBase>
-                                            {
-                                                Data = new TransformingEngineFacet.ResponseBase
-                                                { }
-                                            }
-                                        }
-                                    },
-                                    new TestCase.ExpectedResponseOperation
-                                    {
-                                        Id = Guid.Parse("d1310015-85f4-4e9a-9e8e-ef07dd35fda5"),
-                                        ExpectedResponse = new Response<DashboardManagerFacet.OnStepActivateBase>{
-                                            Data = new DashboardManagerFacet.OnStepActivateBase
-                                            { }
-                                        }
-                                    }
-                                }
-                            },
-                            RightFork = new TestCase.Response.ForkingResponse.ForkMockResponse
-                            {
-                                Reason = "Passed Validation",
-                                Response = new Response<ValidatingEngineFacet.ResponseBase>
-                                {
-                                    Data = new ValidatingEngineFacet.ResponseBase
-                                    {
-                                        IsValid = true
+                                        Number = 1
                                     }
                                 },
                                 Operations = new List<TestCase.Operation>
                                 {
                                     new TestCase.ExpectedResponseOperation
                                     {
-                                        Id = Guid.Parse("b6dfb0bd-8535-402c-8ee2-d4558eeabefa"),
+                                        Id = Guid.Parse("3f1c761e-6892-4271-8c98-d9293a8a91f9"),
                                         ExpectedResponse = new Response<DashboardManagerFacet.OnStepActivateBase> {
                                             Data = new DashboardManagerFacet.DerivedOnStepActivate
                                             {
-                                                StaticId = "SomeStaticId"
+                                                StaticId = "IdNumber1"
                                             }
                                         },
                                         IngoredExpectedResponsePropertyNames = new List<string>
@@ -141,11 +90,147 @@
                                         }
                                     }
                                 }
+                            },
+                            RightFork = new TestCase.Response.ForkingResponse.RightForkResponse
+                            {
+                                Response = new TestCase.Response.ForkingResponse
+                                {
+                                    LeftFork = new TestCase.Response.ForkingResponse.LeftForkResponse
+                                    {
+                                        Reason = "number is 2",
+                                        MockResponse = new Response<RegulatingEngineFacet.ResponseBase>
+                                        {
+                                            Data = new RegulatingEngineFacet.ResponseBase
+                                            {
+                                                Number = 2
+                                            }
+                                        },
+                                        Operations = new List<TestCase.Operation>
+                                        {
+                                            new TestCase.ExpectedResponseOperation
+                                            {
+                                                Id = Guid.Parse("e3a433ef-8cd4-47a2-85bd-e9861d2accf9"),
+                                                ExpectedResponse = new Response<DashboardManagerFacet.OnStepActivateBase> {
+                                                    Data = new DashboardManagerFacet.DerivedOnStepActivate
+                                                    {
+                                                        StaticId = "IdNumber2"
+                                                    }
+                                                },
+                                                IngoredExpectedResponsePropertyNames = new List<string>
+                                                {
+                                                    "RandomId"
+                                                }
+                                            }
+                                        }
+                                    },
+                                    RightFork = new TestCase.Response.ForkingResponse.RightForkResponse
+                                    {
+                                        Reason = "number is not 1 or 2",
+                                        Response = new TestCase.Response.MockResponse
+                                        {
+                                            Response = new Response<RegulatingEngineFacet.ResponseBase>
+                                            {
+                                                Data = new RegulatingEngineFacet.ResponseBase
+                                                {
+                                                    Number = 0
+                                                }
+                                            }
+                                        },
+                                        Operations = new List<TestCase.Operation>
+                                        {
+                                            new TestCase.ServiceOperation
+                                            {
+                                                FacetType = typeof(ValidatingEngineFacet.IValidatingEngine),
+                                                MethodName = "ValidateAsync",
+                                                ExpectedRequest = new Request<ValidatingEngineFacet.RequestBase>
+                                                {
+                                                    Data = new ValidatingEngineFacet.RequestBase
+                                                    { }
+                                                },
+                                                Response = new TestCase.Response.ForkingResponse
+                                                {
+                                                    LeftFork = new TestCase.Response.ForkingResponse.LeftForkResponse
+                                                    {
+                                                        Reason = "Failed Validation",
+                                                        MockResponse = new Response<ValidatingEngineFacet.ResponseBase>
+                                                        {
+                                                            Data = new ValidatingEngineFacet.ResponseBase
+                                                            {
+                                                                IsValid = false
+                                                            }
+                                                        },
+                                                        Operations = new List<TestCase.Operation>
+                                                        {
+                                                            new TestCase.ServiceOperation
+                                                            {
+                                                                FacetType = typeof(TransformingEngineFacet.ITransformingEngine),
+                                                                MethodName = "TransformAsync",
+                                                                ExpectedRequest = new Request<TransformingEngineFacet.RequestBase>
+                                                                {
+                                                                    Data = new TransformingEngineFacet.RequestBase
+                                                                    { }
+                                                                },
+                                                                Response = new TestCase.Response.MockResponse
+                                                                {
+                                                                    Response = new Response<TransformingEngineFacet.ResponseBase>
+                                                                    {
+                                                                        Data = new TransformingEngineFacet.ResponseBase
+                                                                        { }
+                                                                    }
+                                                                }
+                                                            },
+                                                            new TestCase.ExpectedResponseOperation
+                                                            {
+                                                                Id = Guid.Parse("d1310015-85f4-4e9a-9e8e-ef07dd35fda5"),
+                                                                ExpectedResponse = new Response<DashboardManagerFacet.OnStepActivateBase>{
+                                                                    Data = new DashboardManagerFacet.OnStepActivateBase
+                                                                    { }
+                                                                }
+                                                            }
+                                                        }
+                                                    },
+                                                    RightFork = new TestCase.Response.ForkingResponse.RightForkResponse
+                                                    {
+                                                        Reason = "Passed Validation",
+                                                        Response = new TestCase.Response.MockResponse
+                                                        {
+                                                            Response = new Response<ValidatingEngineFacet.ResponseBase>
+                                                            {
+                                                                Data = new ValidatingEngineFacet.ResponseBase
+                                                                {
+                                                                    IsValid = true
+                                                                }
+                                                            }
+                                                        },
+                                                        Operations = new List<TestCase.Operation>
+                                                        {
+                                                            new TestCase.ExpectedResponseOperation
+                                                            {
+                                                                Id = Guid.Parse("b6dfb0bd-8535-402c-8ee2-d4558eeabefa"),
+                                                                ExpectedResponse = new Response<DashboardManagerFacet.OnStepActivateBase> {
+                                                                    Data = new DashboardManagerFacet.DerivedOnStepActivate
+                                                                    {
+                                                                        StaticId = "SomeStaticId"
+                                                                    }
+                                                                },
+                                                                IngoredExpectedResponsePropertyNames = new List<string>
+                                                                {
+                                                                    "RandomId"
+                                                                }
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
                             }
                         }
                     }
                 }
             };
+
             yield return new TestCase("Administration request has expected response")
             {
                 ServiceRegistration = (serviceCollection) =>

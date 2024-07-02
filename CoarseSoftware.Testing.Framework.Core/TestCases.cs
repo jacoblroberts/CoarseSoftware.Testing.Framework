@@ -7,6 +7,7 @@
     using System.Text.Json;
     using CoarseSoftware.Testing.Framework.Core.Comparer;
     using NUnit.Framework;
+    using System;
 
     [TestFixture]
     [Ignore("Abstract")]
@@ -81,89 +82,138 @@
                             }
                             switch (op.Response)
                             {
-                                case TestCase.Response.ForkingResponse forkingResponse:
+                                case TestCase.Response.ForkingResponse fr:
                                     {
-                                        //need to create copies first because we run the left side first, which could change the dependencies
-                                        var copyOfTestStats = testStats.Clone();
-                                        var copyOfPreregisteredDependencies = preregisteredDependencies.Select(p => new PreregisteredDependency
+                                        Func<TestCase.Response.ForkingResponse, TestStats, IEnumerable<PreregisteredDependency>, IEnumerable<string>, int, IEnumerable<CreateTestCaseResponse>, IEnumerable<CreateTestCaseResponse>> forkingHandlerDelegate = null;
+                                        forkingHandlerDelegate = new Func<TestCase.Response.ForkingResponse, TestStats, IEnumerable<PreregisteredDependency>, IEnumerable<string>, int, IEnumerable<CreateTestCaseResponse>, IEnumerable<CreateTestCaseResponse>>((forkingResponse, _testStats, _preregisteredDependencies, _forkReasons, _dependencyCount, existing) =>
                                         {
-                                            FacetType = p.FacetType,
-                                            Proxy = p.Proxy.Clone(p.FacetType, copyOfTestStats)
-                                        }).ToList();
-                                        var copyOfForkReasons = forkReasons.ToList();
+                                            var copyOfTestStats = _testStats.Clone();
+                                            var internalTestStats = _testStats.Clone();
 
-                                        var copyOfDependencyCount = dependencyCount;
+                                            IEnumerable<PreregisteredDependency> copyOfPreregisteredDependencies = _preregisteredDependencies.Select(p => new PreregisteredDependency
+                                            {
+                                                FacetType = p.FacetType,
+                                                Proxy = p.Proxy.Clone(p.FacetType, copyOfTestStats)
+                                            }).ToList();
+                                            IEnumerable<PreregisteredDependency> internalPreregisteredDependencies = _preregisteredDependencies.Select(p => new PreregisteredDependency
+                                            {
+                                                FacetType = p.FacetType,
+                                                Proxy = p.Proxy.Clone(p.FacetType, internalTestStats)
+                                            }).ToList();
+
+                                            IEnumerable<string> copyOfForkReasons = _forkReasons.ToList();
+                                            IEnumerable<string> internalForkReasons = _forkReasons.ToList();
+
+                                            var copyOfDependencyCount = _dependencyCount;
+                                            var internalDependencyCount = _dependencyCount;
+
+                                            var internalPreregisteredDependency = internalPreregisteredDependencies.Where(s => s.FacetType.FullName == op.FacetType.FullName).FirstOrDefault();
+
+                                            internalPreregisteredDependency.Proxy.Enqueue(new MockProxy.Response
+                                            {
+                                                ExpectedInvocationOrder = internalDependencyCount,
+                                                Item = forkingResponse.LeftFork.MockResponse,
+                                                ExpectedRequest = op.ExpectedRequest,
+                                                IngoredPropertyNames = op.IngoredExpectedRequestPropertyNames
+                                            });
+
+                                            // @TODO - do something with reason like add it to the json output.
+                                            //forkingResponse.LeftFork.Reason
+                                            internalForkReasons = internalForkReasons.Append(forkingResponse.LeftFork.Reason);
+                                            var completed = false;
+                                            foreach (var v in createTestCase(forkingResponse.LeftFork.Operations, internalPreregisteredDependencies, internalDependencyCount, managerTestCase, internalForkReasons.ToList(), internalTestStats, genericTestExpectationComparerType, explicitTestExpectationComparerTypes))
+                                            {
+                                                if (completed)
+                                                {
+                                                    throw new Exception("Only the last response will have a null TestCaseData");
+                                                }
+
+                                                if (v.ExpectedResponse != null)
+                                                {
+                                                    //yield return v;
+                                                    existing = existing.Append(v);
+                                                }
+                                                else
+                                                {
+                                                    internalDependencyCount = v.DependencyCount;
+                                                    internalPreregisteredDependencies = v.PreregisteredDependencies;
+                                                    //forkReasons = v.ForkReasons;
+                                                    completed = true;
+                                                }
+                                            }
+
+                                            // handle the RightFork
+                                            // if the right fork is a MockResponse, we can handle it here
+                                            //      if it is a ForkingResponse, we need to invoke create.
+                                            switch (forkingResponse.RightFork.Response)
+                                            {
+                                                case TestCase.Response.ForkingResponse fork:
+                                                    {
+                                                        var recursiveResponse = forkingHandlerDelegate.Invoke(fork, copyOfTestStats, copyOfPreregisteredDependencies, copyOfForkReasons, copyOfDependencyCount, new List<CreateTestCaseResponse>());
+                                                        existing = existing.Concat(recursiveResponse);
+                                                        break;
+                                                    }
+                                                case TestCase.Response.MockResponse mock:
+                                                    {
+                                                        var preregisteredDependencyFromCopy = copyOfPreregisteredDependencies.Where(s => s.FacetType.FullName == op.FacetType.FullName).FirstOrDefault();
+                                                        if (preregisteredDependencyFromCopy == null)
+                                                        {
+                                                            throw new Exception("this should already be set before the copy");
+                                                        }
+                                                        preregisteredDependencyFromCopy.Proxy.Enqueue(new MockProxy.Response
+                                                        {
+                                                            ExpectedInvocationOrder = copyOfDependencyCount,
+                                                            Item = mock.Response,
+                                                            ExpectedRequest = op.ExpectedRequest,
+                                                            IngoredPropertyNames = op.IngoredExpectedRequestPropertyNames
+                                                        });
+                                                        // @TODO - do something with reason,  write to json output
+                                                        copyOfForkReasons = copyOfForkReasons.Append(forkingResponse.RightFork.Reason);
+                                                        completed = false;
+                                                        foreach (var v in createTestCase(forkingResponse.RightFork.Operations, copyOfPreregisteredDependencies, copyOfDependencyCount, managerTestCase, copyOfForkReasons.ToList(), copyOfTestStats, genericTestExpectationComparerType, explicitTestExpectationComparerTypes))
+                                                        {
+                                                            if (completed)
+                                                            {
+                                                                throw new Exception("Only the last response will have a null TestCaseData");
+                                                            }
+
+                                                            if (v.ExpectedResponse != null)
+                                                            {
+                                                                //yield return v;
+                                                                existing = existing.Append(v);
+                                                            }
+                                                            else
+                                                            {
+                                                                //set the cound and serviceCollection
+                                                                copyOfDependencyCount = v.DependencyCount;
+                                                                copyOfPreregisteredDependencies = v.PreregisteredDependencies;
+                                                                //copyOfForkReasons = v.ForkReasons;
+                                                                completed = true;
+                                                            }
+                                                        }
+                                                        break;
+                                                    }
+
+                                            }
+                                           
+                                            return existing;
+
+                                            
+                                        });
+                                        //need to create copies first because we run the left side first, which could change the dependencies
+                                        foreach(var resp in forkingHandlerDelegate.Invoke(fr, testStats, preregisteredDependencies, forkReasons, dependencyCount, new List<CreateTestCaseResponse>()))
+                                        {
+                                            yield return resp;
+                                        }
 
                                         preregisteredDependency.Proxy.Enqueue(new MockProxy.Response
                                         {
                                             ExpectedInvocationOrder = dependencyCount,
-                                            Item = forkingResponse.LeftFork.MockResponse,
+                                            Item = fr.LeftFork.MockResponse,
                                             ExpectedRequest = op.ExpectedRequest,
                                             IngoredPropertyNames = op.IngoredExpectedRequestPropertyNames
                                         });
 
-                                        // @TODO - do something with reason like add it to the json output.
-                                        //forkingResponse.LeftFork.Reason
-                                        forkReasons = forkReasons.Append(forkingResponse.LeftFork.Reason);
-                                        var completed = false;
-                                        foreach (var v in createTestCase(forkingResponse.LeftFork.Operations, preregisteredDependencies, dependencyCount, managerTestCase, forkReasons.ToList(), testStats, genericTestExpectationComparerType, explicitTestExpectationComparerTypes))
-                                        {
-                                            if (completed)
-                                            {
-                                                throw new Exception("Only the last response will have a null TestCaseData");
-                                            }
-
-                                            if (v.ExpectedResponse != null)
-                                            {
-                                                yield return v;
-                                            }
-                                            else
-                                            {
-                                                dependencyCount = v.DependencyCount;
-                                                preregisteredDependencies = v.PreregisteredDependencies;
-                                                forkReasons = v.ForkReasons;
-                                                completed = true;
-                                            }
-                                        }
-
-                                        // handle the RightFork
-                                        // if the right fork is a MockResponse, we can handle it here
-                                        //      if it is a ForkingResponse, we need to invoke create.
-                                        var preregisteredDependencyFromCopy = copyOfPreregisteredDependencies.Where(s => s.FacetType.FullName == op.FacetType.FullName).FirstOrDefault();
-                                        if (preregisteredDependencyFromCopy == null)
-                                        {
-                                            throw new Exception("this should already be set before the copy");
-                                        }
-                                        preregisteredDependencyFromCopy.Proxy.Enqueue(new MockProxy.Response
-                                        {
-                                            ExpectedInvocationOrder = copyOfDependencyCount,
-                                            Item = forkingResponse.RightFork.Response,
-                                            ExpectedRequest = op.ExpectedRequest,
-                                            IngoredPropertyNames = op.IngoredExpectedRequestPropertyNames
-                                        });
-                                        // @TODO - do something with reason,  write to json output
-                                        copyOfForkReasons.Add(forkingResponse.RightFork.Reason);
-                                        completed = false;
-                                        foreach (var v in createTestCase(forkingResponse.RightFork.Operations, copyOfPreregisteredDependencies, copyOfDependencyCount, managerTestCase, copyOfForkReasons, copyOfTestStats, genericTestExpectationComparerType, explicitTestExpectationComparerTypes))
-                                        {
-                                            if (completed)
-                                            {
-                                                throw new Exception("Only the last response will have a null TestCaseData");
-                                            }
-
-                                            if (v.ExpectedResponse != null)
-                                            {
-                                                yield return v;
-                                            }
-                                            else
-                                            {
-                                                //set the cound and serviceCollection
-                                                copyOfDependencyCount = v.DependencyCount;
-                                                preregisteredDependencies = v.PreregisteredDependencies;
-                                                forkReasons = v.ForkReasons;
-                                                completed = true;
-                                            }
-                                        }
                                         break;
                                     }
                                 case TestCase.Response.MockResponse mockResponse:
@@ -373,7 +423,7 @@
                     Category = $"Manager.{managerTestCase.ConceptInterfaceType}.{context}.{requestType.Name}.{expectedResponseData.GetType().Name}",
                     ExpectedResponse = createTestCaseResponse.ExpectedResponse,
                     TestName = createTestCaseResponse.ForkReasons.Any()
-                        ? $"{managerTestCase.ConceptInterfaceType}.UseCases.{context}.{expectedResponseData.GetType().Name} Under Condition; {string.Join(" | ", createTestCaseResponse.ForkReasons)}  ID: {createTestCaseResponse.TestId}"
+                        ? $"{managerTestCase.ConceptInterfaceType}.UseCases.{context}.{expectedResponseData.GetType().Name} Under Condition; {string.Join(" & ", createTestCaseResponse.ForkReasons)}  ID: {createTestCaseResponse.TestId}"
                         : $"{managerTestCase.ConceptInterfaceType}.UseCases.{context}.{expectedResponseData.GetType().Name} ID: {createTestCaseResponse.TestId}",
                     IngoredExpectedResponsePropertyNames = createTestCaseResponse.IngoredExpectedResponsePropertyNames
                 };
