@@ -20,13 +20,7 @@
         /// <summary>
         /// Method name like; FlowAsync
         /// </summary>
-        public string Method { get; set; } // how do we make selecting the method easy?
-
-        /// <summary>
-        /// This is for any extra arguments that a Hosting.Register takes.  
-        /// The IServiceCollection is implied and set as the first argument (forcing best practices).  The second argument of hosting is sometimes a delegate for configuration.  That delegate and anything else needs to be added here, in order. 
-        /// </summary>
-        public IEnumerable<object> OptionalHostingArgs { get; set; } = new List<object>();
+        public string Method { get; set; }
 
         /// <summary>
         /// Used to register services that are not mocked or supplied from Hostings.  ie; unit of work...
@@ -38,10 +32,6 @@
         /// </summary>
         public object Request { get; set; }
 
-        // ExpectedResponse could change based on forked operation
-        //  a forked operation can change the 'final response' or simply invoke operations
-        //  when a 'final response' is seen, the test is created and the rest of the items are traversed.
-
         /// <summary>
         /// Ordered service invocations; utilities and components
         /// </summary>
@@ -49,7 +39,7 @@
 
         public class Operation { }
 
-        public class SingleOperation : Operation
+        public class ServiceOperation : Operation
         {
             /// <summary>
             /// We need type here instead of string due to utility naming not being inferrable
@@ -69,13 +59,20 @@
             }
             public class ForkingResponse : Response
             {
-                public ForkMockResponse LeftFork { get; set; }
-                public ForkMockResponse RightFork { get; set; }
+                public LeftForkResponse LeftFork { get; set; }
+                public RightForkResponse RightFork { get; set; }
 
-                public class ForkMockResponse
+                public class LeftForkResponse
                 {
                     public string Reason { get; set; }
-                    public object Response { get; set; }
+                    public object MockResponse { get; set; }
+                    public IEnumerable<Operation> Operations { get; set; }
+                }
+
+                public class RightForkResponse
+                {
+                    public string Reason { get; set; }
+                    public Response Response { get; set; }
                     public IEnumerable<Operation> Operations { get; set; }
                 }
             }
@@ -93,17 +90,5 @@
             public object ExpectedResponse { get; set; }
             public IEnumerable<string> IngoredExpectedResponsePropertyNames { get; set; }
         }
-
-        //public class ForkOperation : Operation
-        //{
-        //    /// <summary>
-        //    /// this is used when there is a condition that doesn't return but perhaps does something like send a notification.
-        //    /// example;  if file processesd, notify the member, do more stuff after the conditional scope....
-        //    /// </summary>
-        //    public string Reason { get; set; }
-        //    public IEnumerable<Operation> Operations { get; set; }
-        //}
-
-
     }
 }

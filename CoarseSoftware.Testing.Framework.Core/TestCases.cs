@@ -64,7 +64,7 @@
                 }
                 switch (operation)
                 {
-                    case TestCase.SingleOperation op:
+                    case TestCase.ServiceOperation op:
                         {
                             dependencyCount++;
 
@@ -97,7 +97,7 @@
                                         preregisteredDependency.Proxy.Enqueue(new MockProxy.Response
                                         {
                                             ExpectedInvocationOrder = dependencyCount,
-                                            Item = forkingResponse.LeftFork.Response,
+                                            Item = forkingResponse.LeftFork.MockResponse,
                                             ExpectedRequest = op.ExpectedRequest,
                                             IngoredPropertyNames = op.IngoredExpectedRequestPropertyNames
                                         });
@@ -127,6 +127,8 @@
                                         }
 
                                         // handle the RightFork
+                                        // if the right fork is a MockResponse, we can handle it here
+                                        //      if it is a ForkingResponse, we need to invoke create.
                                         var preregisteredDependencyFromCopy = copyOfPreregisteredDependencies.Where(s => s.FacetType.FullName == op.FacetType.FullName).FirstOrDefault();
                                         if (preregisteredDependencyFromCopy == null)
                                         {
