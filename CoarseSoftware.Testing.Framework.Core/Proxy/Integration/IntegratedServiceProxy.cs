@@ -1,4 +1,4 @@
-﻿namespace CoarseSoftware.Testing.Framework.Core.Proxy
+﻿namespace CoarseSoftware.Testing.Framework.Core.Proxy.Integration
 {
     using System.Reflection;
 
@@ -9,7 +9,6 @@
         private Type? genericTestExpectationComparerType { get; set; }
         private IEnumerable<Type> explicitTestExpectationComparerTypes { get; set; }
         private Type serviceType { get; set; }
-        private IntegrationTestStats.Invocation invocation { get; set; }
 
         /// <summary>
         /// this has a value ONLY if the service is a manager component.
@@ -90,7 +89,7 @@
                 Method = targetMethod.Name,
                 RequestType = requestData != null ? requestData.GetType().FullName : string.Empty,
                 ResponseType = responseData == null || responseData is CoarseSoftware.Testing.Framework.Core.TestCasesRunner.VoidResponse ? string.Empty : responseData.GetType().FullName,
-                ChildInvocations = invocation.ChildInvocations
+                //ChildInvocations = invocation.ChildInvocations
             };
 
             onInvocationComplete.Invoke(invocat);
@@ -109,7 +108,7 @@
             return Task.FromResult<T>((T)value);
         }
 
-        public static object Create(object service, Type serviceType, Action<IntegrationTestStats.Invocation> onInvocationComplete, IntegrationTestStats.Invocation invocation, Type? genericTestExpectationComparerType, IEnumerable<Type> explicitTestExpectationComparerTypes, IntegrationTestCase.Microservice expectedMicroservice, TestRunnerConfiguration configuration)
+        public static object Create(object service, Type serviceType, Action<IntegrationTestStats.Invocation> onInvocationComplete, Type? genericTestExpectationComparerType, IEnumerable<Type> explicitTestExpectationComparerTypes, IntegrationTestCase.Microservice expectedMicroservice, TestRunnerConfiguration configuration)
         {
 #if NET8_0
             var proxy = DispatchProxy.Create(serviceType, typeof(IntegratedServiceProxy));
@@ -123,7 +122,7 @@
             proxyTypes.onInvocationComplete = onInvocationComplete;
             proxyTypes.genericTestExpectationComparerType = genericTestExpectationComparerType;
             proxyTypes.explicitTestExpectationComparerTypes = explicitTestExpectationComparerTypes;
-            proxyTypes.invocation = invocation;
+            //proxyTypes.invocation = invocation;
             proxyTypes.expectedMicroservice = expectedMicroservice;
             proxyTypes.configuration = configuration;
             return proxy;

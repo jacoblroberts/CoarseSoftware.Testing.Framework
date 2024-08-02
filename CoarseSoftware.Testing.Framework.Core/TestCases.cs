@@ -514,7 +514,7 @@
         ////// Integration Tests
         public static async Task<bool> RunIntegrationTestCase(IntegrationTestCaseDataRequest testCase)
         {
-            var serviceProvider = (testCase.ServiceCollection as ServiceCollectionProxy).BuildServiceProvider();
+            var serviceProvider = (testCase.ServiceCollection as CoarseSoftware.Testing.Framework.Core.Proxy.Integration.ServiceCollectionProxy).BuildServiceProvider();
             var microservice = serviceProvider.GetRequiredService(testCase.ExpectedMicroservice.FacetType);
             var facetMethod = testCase.ExpectedMicroservice.FacetType.GetMethod(testCase.ExpectedMicroservice.MethodName);
             var task = (Task)facetMethod.Invoke(microservice, new object[] { testCase.ExpectedMicroservice.Request, CancellationToken.None });
@@ -537,7 +537,7 @@
         ////// Client Tests
         public static async Task<bool> RunClientTestCase(ClientTestCaseDataRequest testCase)
         {
-            var serviceProvider = (testCase.ServiceCollection as CoarseSoftware.Testing.Framework.Core.Proxy.ClientTest.ServiceCollectionProxy).BuildServiceProvider();
+            var serviceProvider = (testCase.ServiceCollection as CoarseSoftware.Testing.Framework.Core.Proxy.Client.ServiceCollectionProxy).BuildServiceProvider();
             var entryPointResponse = testCase.EntryPoint.Invoke(serviceProvider);
             // compare response to testCase.ExpectedResponse
 
@@ -589,7 +589,7 @@
             var config = Helpers.GetTestRunnerConfiguration();
 
             var serviceCollection = new ServiceCollection();
-            var serviceCollectionProxy = CoarseSoftware.Testing.Framework.Core.Proxy.ClientTest.ServiceCollectionProxy.Create(serviceCollection, testStats, integrationTestCase, genericTestExpectationComparerType, explicitTestExpectationComparerTypes) as IServiceCollection;
+            var serviceCollectionProxy = CoarseSoftware.Testing.Framework.Core.Proxy.Client.ServiceCollectionProxy.Create(serviceCollection, testStats, integrationTestCase, genericTestExpectationComparerType, explicitTestExpectationComparerTypes) as IServiceCollection;
             integrationTestCase.ServiceRegistration?.Invoke(serviceCollectionProxy);
 
             // from integrationTestCase.ExpectedMicroservice.FacetType, get the concept
@@ -642,7 +642,7 @@
             var config = Helpers.GetTestRunnerConfiguration();
 
             var serviceCollection = new ServiceCollection();
-            var serviceCollectionProxy = ServiceCollectionProxy.Create(serviceCollection, testStats, integrationTestCase, genericTestExpectationComparerType, explicitTestExpectationComparerTypes) as IServiceCollection;
+            var serviceCollectionProxy = CoarseSoftware.Testing.Framework.Core.Proxy.Integration.ServiceCollectionProxy.Create(serviceCollection, testStats, integrationTestCase, genericTestExpectationComparerType, explicitTestExpectationComparerTypes) as IServiceCollection;
             integrationTestCase.ServiceRegistration?.Invoke(serviceCollectionProxy);
 
             // from integrationTestCase.ExpectedMicroservice.FacetType, get the concept

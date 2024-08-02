@@ -1,5 +1,6 @@
-﻿namespace CoarseSoftware.Testing.Framework.Core.Proxy
+﻿namespace CoarseSoftware.Testing.Framework.Core.Proxy.Integration
 {
+    using CoarseSoftware.Testing.Framework.Core.Proxy.Client;
     using System.Reflection;
     using System.Security.Cryptography;
 
@@ -12,6 +13,7 @@
         private IntegrationTestStats.Invocation invocation {  get; set; }
         private TestRunnerConfiguration configuration { get; set; }
         private IntegrationTestCase.Microservice expectedMicroservice {  get; set; }
+        //private IntegrationTestStats testStats { get; set; }
 
         protected override object? Invoke(MethodInfo? targetMethod, object?[]? args)
         {
@@ -58,11 +60,13 @@
             {
                 // we use this same proxy, passing in the invocation as the parent
                 // if a manager, we don't create a serviceInvocation
-                
+
 
                 // @TODO - with stateful services, the ctor will require a stateId.  StateId should be pulled from the Request wrapper and added.  
                 //          cross that bridge when we get there...
                 // Note that state should only ever be applied to the manager instance
+                //var serviceProviderProxy = ServiceProviderProxy.Create(this.serviceProvider, serviceInvocation, this.genericTestExpectationComparerType, this.explicitTestExpectationComparerTypes, this.configuration);
+
                 var service = hasEmptyOrDefaultConstr
                     ? Activator.CreateInstance(registeredType.GetType())
                     : Activator.CreateInstance(registeredType.GetType(), new[] { this as IServiceProvider });
@@ -75,14 +79,12 @@
                     integrationStat.MicroserviceInvocation.RequestType = invoc.RequestType;
                     integrationStat.MicroserviceInvocation.ResponseType = invoc.ResponseType;
 
-                }, integrationStat.MicroserviceInvocation, genericTestExpectationComparerType, explicitTestExpectationComparerTypes, expectedMicroservice, configuration);
+                }, genericTestExpectationComparerType, explicitTestExpectationComparerTypes, expectedMicroservice, configuration);
                 return serviceProxy;
             }
             else
             {
-                var serviceInvocation = new IntegrationTestStats.Invocation();
-                serviceInvocation.ServiceType = serviceType.FullName;
-                var serviceProviderProxy = ServiceProviderProxy.Create(this.serviceProvider, serviceInvocation, this.genericTestExpectationComparerType, this.explicitTestExpectationComparerTypes, this.configuration);
+                var serviceProviderProxy = ServiceProviderProxy.Create(this.serviceProvider, new IntegrationTestStats.Invocation(), this.genericTestExpectationComparerType, this.explicitTestExpectationComparerTypes, this.configuration);
                 var service = hasEmptyOrDefaultConstr
                     ? registeredType
                     : registeredType.GetType().GetConstructors().Where(c => c.GetParameters().Length == 1 && c.GetParameters()[0].ParameterType.Equals(typeof(IServiceProvider))).Any() // at ctor that takes a IServiceProvider
@@ -91,6 +93,8 @@
 
                 var serviceProxy = IntegratedServiceProxy.Create(service, args[0] as Type, invoc =>
                 {
+                    var childServices = ((ServiceProviderProxy)serviceProviderProxy).ClearServices();
+                    invoc.ChildInvocations = childServices;
                     if (this.integrationStat != null)
                     {
                         this.integrationStat.MicroserviceInvocation.ChildInvocations = this.integrationStat.MicroserviceInvocation.ChildInvocations.Append(invoc).ToList();
@@ -99,8 +103,22 @@
                     {
                         this.invocation.ChildInvocations = this.invocation.ChildInvocations.Append(invoc).ToList();
                     }
-                }, serviceInvocation, genericTestExpectationComparerType, explicitTestExpectationComparerTypes, null, configuration);
+                }, genericTestExpectationComparerType, explicitTestExpectationComparerTypes, null, configuration);
                 return serviceProxy;
+            }
+        }
+
+        public IEnumerable<IntegrationTestStats.Invocation> ClearServices()
+        {
+            if (this.integrationStat != null)
+            {
+                throw new Exception("Microservice should not be clearing services...");
+            }
+            else
+            {
+                var services = this.invocation.ChildInvocations.ToList(); //this.parentStat.Services.ToList();
+                this.invocation.ChildInvocations = new List<IntegrationTestStats.Invocation>();
+                return services;
             }
         }
 

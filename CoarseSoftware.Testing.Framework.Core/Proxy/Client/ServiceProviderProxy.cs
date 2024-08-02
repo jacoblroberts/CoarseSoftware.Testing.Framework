@@ -1,4 +1,4 @@
-﻿namespace CoarseSoftware.Testing.Framework.Core.Proxy.ClientTest
+﻿namespace CoarseSoftware.Testing.Framework.Core.Proxy.Client
 {
     using System.Reflection;
 

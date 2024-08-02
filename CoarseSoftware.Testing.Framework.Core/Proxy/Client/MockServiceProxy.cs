@@ -1,4 +1,4 @@
-﻿namespace CoarseSoftware.Testing.Framework.Core.Proxy.ClientTest
+﻿namespace CoarseSoftware.Testing.Framework.Core.Proxy.Client
 {
     using System.Reflection;
 
@@ -74,7 +74,7 @@
 
             if (isTask)
             {
-                var convert_method = typeof(IntegratedServiceProxy).GetMethod("ConvertToTaskHack").MakeGenericMethod(response.GetType());
+                var convert_method = typeof(CoarseSoftware.Testing.Framework.Core.Proxy.Integration.IntegratedServiceProxy).GetMethod("ConvertToTaskHack").MakeGenericMethod(response.GetType());
                 var result = convert_method.Invoke(null, new object[] { response });
                 return result;
             }
