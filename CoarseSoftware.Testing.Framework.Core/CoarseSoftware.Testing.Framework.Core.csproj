@@ -35,6 +35,7 @@
 
 	<ItemGroup>
 	  <Folder Include="ObjectComparer\" />
+	  <Folder Include="ProxyV2\Client\" />
 	</ItemGroup>
 
 </Project>

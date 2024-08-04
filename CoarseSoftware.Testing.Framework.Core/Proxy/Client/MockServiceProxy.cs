@@ -74,7 +74,7 @@
 
             if (isTask)
             {
-                var convert_method = typeof(CoarseSoftware.Testing.Framework.Core.Proxy.Integration.IntegratedServiceProxy).GetMethod("ConvertToTaskHack").MakeGenericMethod(response.GetType());
+                var convert_method = typeof(CoarseSoftware.Testing.Framework.Core.ProxyV2.Integration.IntegratedServiceProxy).GetMethod("ConvertToTaskHack").MakeGenericMethod(response.GetType());
                 var result = convert_method.Invoke(null, new object[] { response });
                 return result;
             }

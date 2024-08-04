@@ -1,4 +1,4 @@
-﻿namespace CoarseSoftware.Testing.Framework.Core.Proxy.Integration
+﻿namespace CoarseSoftware.Testing.Framework.Core.Proxy.IntegrationX
 {
     using System.Reflection;
 

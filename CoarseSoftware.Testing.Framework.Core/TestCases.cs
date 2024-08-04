@@ -514,7 +514,7 @@
         ////// Integration Tests
         public static async Task<bool> RunIntegrationTestCase(IntegrationTestCaseDataRequest testCase)
         {
-            var serviceProvider = (testCase.ServiceCollection as CoarseSoftware.Testing.Framework.Core.Proxy.Integration.ServiceCollectionProxy).BuildServiceProvider();
+            var serviceProvider = testCase.ServiceCollection.BuildServiceProvider();
             var microservice = serviceProvider.GetRequiredService(testCase.ExpectedMicroservice.FacetType);
             var facetMethod = testCase.ExpectedMicroservice.FacetType.GetMethod(testCase.ExpectedMicroservice.MethodName);
             var task = (Task)facetMethod.Invoke(microservice, new object[] { testCase.ExpectedMicroservice.Request, CancellationToken.None });
@@ -642,7 +642,7 @@
             var config = Helpers.GetTestRunnerConfiguration();
 
             var serviceCollection = new ServiceCollection();
-            var serviceCollectionProxy = CoarseSoftware.Testing.Framework.Core.Proxy.Integration.ServiceCollectionProxy.Create(serviceCollection, testStats, integrationTestCase, genericTestExpectationComparerType, explicitTestExpectationComparerTypes) as IServiceCollection;
+            var serviceCollectionProxy = CoarseSoftware.Testing.Framework.Core.ProxyV2.Integration.ServiceCollectionProxy.Create(serviceCollection, testStats, integrationTestCase, genericTestExpectationComparerType, explicitTestExpectationComparerTypes, config) as IServiceCollection;
             integrationTestCase.ServiceRegistration?.Invoke(serviceCollectionProxy);
 
             // from integrationTestCase.ExpectedMicroservice.FacetType, get the concept
