@@ -38,4 +38,10 @@
 	  <Folder Include="ProxyV2\Client\" />
 	</ItemGroup>
 
+	<ItemGroup Condition="'$(TargetFramework)' == 'net8.0'">
+	  <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing">
+	    <Version>8.0.7</Version>
+	  </PackageReference>
+	</ItemGroup>
+
 </Project>

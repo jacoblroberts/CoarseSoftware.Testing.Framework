@@ -1,0 +1,10 @@
+Make MD to support Nuget and Github
+
+Client -
+	will only have an entry point that gets a IServiceCollection
+	the tester is responsible for invoking the system or building a IServiceProvider to get the service needed to invoke.
+
+	ISSUE:
+		how will the tester get the controller to invoke?
+			they wont unless they are testing from that explicity, in which case, build the IServiceProvider.
+		if you invoke startup, then you should have some way of invoking your system.
