@@ -8,6 +8,7 @@
     using NUnit.Framework;
     using System;
     using System.Threading.Tasks;
+    using CoarseSoftware.Testing.Framework.Core.TestCaseProcessor;
 
     [TestFixture]
     [Ignore("Abstract")]
@@ -31,6 +32,8 @@
                     return await RunTestCase(request, testStatStore);
                 case ClientTestCaseDataRequest request:
                     return await RunClientTestCase(request);
+                case GenericClientTestCaseDataRequest request:
+                    return await GenericClientTestCaseProcessor.Run(request);
             }
             return false;
         }
@@ -61,6 +64,12 @@
             public string Category { get; set; }
             public object? ExpectedResponse { get; set; }
             public IEnumerable<string> IngoredExpectedResponsePropertyNames { get; set; }
+        }
+
+        public class GenericClientTestCaseDataRequest: TestCaseDataRequestBase
+        {
+            public string TestName { get; set; }
+            public Func<object> EntryPoint { get; set; }
         }
 
         public class TestCaseDataRequestBase
@@ -1131,6 +1140,20 @@
                 }
             }
 
+            // generic client tests
+            var genericClientTestCases = getGenericClientTestCases();
+            foreach (var testCaseType in genericClientTestCases)
+            {
+                var testCaseEnumerable = Activator.CreateInstance(testCaseType) as IEnumerable<GenericClientTestCase>;
+                if (testCaseEnumerable == null)
+                {
+                    throw new Exception($"Could not create instance for type {testCaseType.FullName}");
+                }
+                foreach (var item in testCaseEnumerable)
+                {
+                    yield return GenericClientTestCaseProcessor.Build(item, genericTestModelComparerType, explicitTestModelComparerTypess);
+                }
+            }
 
             var integrationTestCaseTypes = getIntegrationTestCaseTypes();
             var counter = 0;
@@ -1232,6 +1255,11 @@
         private static IEnumerable<Type> getClientTestCaseTypes()
         {
             return getTestCaseTypes<ClientTestCase>();
+        }
+
+        private static IEnumerable<Type> getGenericClientTestCases()
+        {
+            return getTestCaseTypes<GenericClientTestCase>();
         }
 
         private static IEnumerable<Type> getTestCaseTypes<T>()
