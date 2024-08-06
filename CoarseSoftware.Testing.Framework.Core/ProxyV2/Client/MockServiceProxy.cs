@@ -46,10 +46,10 @@
                     childStat.MethodName = microservice.ExpectedMethodName;
                     childStat.TypeName = microservice.FacetType.FullName;
                     childStat.RequestTypeNames = new List<string> { microservice.ExpectedRequest.GetType().GetProperty(configuration.RequestWrapper.DtoPropertyName).GetValue(microservice.ExpectedRequest).GetType().FullName };
-                    childStat.ResponseTypeName = microservice.MockResponse.GetType().GetProperty(configuration.ResponseWrapper.DtoPropertyName).GetValue(microservice.MockResponse).GetType().FullName;
+                    var responseType = microservice.MockResponse.GetType().GetProperty(configuration.ResponseWrapper.DtoPropertyName).GetValue(microservice.MockResponse).GetType();
 
                     openChannel.Invoke(this.parentKey, key, childStat);
-                    closeChannel.Invoke(this.parentKey, key, childStat.ResponseTypeName);
+                    closeChannel.Invoke(this.parentKey, key, responseType.FullName);
                     return result;
                 }
             }
