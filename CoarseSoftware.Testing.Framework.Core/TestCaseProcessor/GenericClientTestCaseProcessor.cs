@@ -10,7 +10,7 @@
         public static TestCaseData Build(GenericClientTestCase genericClientTestCase, Type? genericTestExpectationComparerType, IEnumerable<Type> explicitTestExpectationComparerTypes)
         {
 #if NET8_0
-            if (genericClientTestCase.EntryPoint.GetType().Equals(typeof(GenericClientTestCase.WebApplicationEntryPointWrapper<>)))
+            if (genericClientTestCase.EntryPoint.GetType().GetGenericTypeDefinition().Equals(typeof(GenericClientTestCase.WebApplicationEntryPointWrapper<>)))
             {
                 var testName = $"{genericClientTestCase.Client} - {genericClientTestCase.Id} | {genericClientTestCase.Description}";
 
@@ -20,11 +20,11 @@
                     EntryPoint = () =>
                     {
                         // most of this is in the runner.
-                        Type genericClientTestCaseType = genericClientTestCase.GetType();
-                        var convert_method = genericClientTestCaseType.GetMethod("InvokeEntryPoint").MakeGenericMethod(genericClientTestCaseType);
+                        Type genericClientTestCaseType = genericClientTestCase.EntryPoint.GetType();
+                        var convert_method = genericClientTestCaseType.GetMethod("InvokeEntryPoint");
                         var config = Helpers.GetTestRunnerConfiguration();
 
-                        var result = convert_method.Invoke(genericClientTestCase, new object[]
+                        var result = convert_method.Invoke(genericClientTestCase.EntryPoint, new object[]
                         {
                             genericTestExpectationComparerType,
                             explicitTestExpectationComparerTypes,

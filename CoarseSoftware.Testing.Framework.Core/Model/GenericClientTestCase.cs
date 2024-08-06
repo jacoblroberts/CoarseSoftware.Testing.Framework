@@ -7,6 +7,7 @@
 #endif
     using Microsoft.Extensions.DependencyInjection;
     using System.Reflection;
+    using System.Runtime.CompilerServices;
 
     /// <summary>
     /// Client test case
@@ -62,7 +63,7 @@
             public object InvokeEntryPoint(
                 Type? genericTestExpectationComparerType,
                 IEnumerable<Type> explicitTestExpectationComparerTypes,
-                ClientTestCase.Microservice microservice,
+                Microservice microservice,
                 TestRunnerConfiguration configuration
                 )
             {
@@ -79,12 +80,12 @@
             {
                 private readonly Type? genericTestExpectationComparerType;
                 private readonly IEnumerable<Type> explicitTestExpectationComparerTypes;
-                private readonly ClientTestCase.Microservice microservice;
+                private readonly Microservice microservice;
                 private readonly TestRunnerConfiguration configuration;
                 public CustomWebApplicationFactory(
                     Type? genericTestExpectationComparerType,
                     IEnumerable<Type> explicitTestExpectationComparerTypes,
-                    ClientTestCase.Microservice microservice,
+                    Microservice microservice,
                     TestRunnerConfiguration configuration
                     )
                 {
@@ -183,6 +184,14 @@
                         });
                         findOpenedService = new Func<Guid, Guid, IEnumerable<ServiceStat>, ServiceStat>((parentKey, key, serviceStats) =>
                         {
+                            // initially we do not have a parent so if we have the key at one of the stats, that is the one
+                            // FUTURE ENHANCEMENTS - when the parent is created, set that as the first parent.
+                            var s = serviceStats.Where(s => s.Key == key && string.IsNullOrEmpty(s.ResponseTypeName)).FirstOrDefault();
+                            if (s != null)
+                            {
+                                return s;
+                            }
+
                             foreach (var serviceStat in serviceStats)
                             {
                                 if (!string.IsNullOrEmpty(serviceStat.ResponseTypeName))
@@ -212,14 +221,99 @@
                             return null;
                         });
 
+                        var implementationFactory = new Func<IServiceProvider, ServiceDescriptor, object>((sp, serviceDescriptor) =>
+                        {
+                            // do we care about the first sp?
+                            //  if sp is not in dict, we can assume it is for the first children
+                            // the parent key is actually the one that created this 
+                            Guid parentKey = Guid.Empty;
+                            var spHash = sp.GetHashCode();
+                            if (!this.serviceProviderScopes.ContainsKey(spHash))
+                            {
+                                parentKey = Guid.NewGuid();
+                                this.serviceProviderScopes.Add(spHash, parentKey);
+                            }
+                            else
+                            {
+                                parentKey = this.serviceProviderScopes[spHash];
+                            }
+
+                            var getService = new Func<Guid, object>((key) =>
+                            {
+                                var registeredImplementationType = serviceDescriptor.ImplementationType;
+                                var hasEmptyOrDefaultConstr =
+                                  registeredImplementationType.GetConstructor(Type.EmptyTypes) != null ||
+                                  registeredImplementationType.GetConstructors(BindingFlags.Instance | BindingFlags.Public)
+                                .Any(x => x.GetParameters().All(p => p.IsOptional));
+
+                                var scopedServiceProvider = services.BuildServiceProvider();
+                                // the descriptor delegate needs the parent key created here..
+                                // this way it can 
+
+                                this.serviceProviderScopes.Add(scopedServiceProvider.GetHashCode(), key); // Guid.NewGuid()); //<---
+                                var activatedService = hasEmptyOrDefaultConstr
+                                    ? Activator.CreateInstance(registeredImplementationType)
+                                    : Activator.CreateInstance(registeredImplementationType, new[] { scopedServiceProvider as IServiceProvider });
+                                return activatedService;
+                            });
+                            var proxy = CoarseSoftware.Testing.Framework.Core.ProxyV2.Client.MockServiceProxy.Create(
+                                serviceDescriptor?.ServiceType ?? microservice.FacetType,
+                                openChannel,
+                                closeChannel,
+                                getService,
+                                parentKey,
+                                genericTestExpectationComparerType,
+                                explicitTestExpectationComparerTypes,
+                                microservice,
+                                configuration
+                                );
+                            return proxy;
+                        });
+
                         // will use this to look up 
                         //IServiceCollection originalServices = new ServiceCollection();
                         // build this at the end..
                         //IServiceProvider serviceProvider = null;
-                        foreach (var service in services)
+                        var servicesCopy = services.ToList();
+                        foreach (var service in servicesCopy)
                         {
+                            var skipped = new List<string> { "IHost" };
+                            if (skipped.Where(s => service.ServiceType.FullName.IndexOf(s) > -1).Any())
+                            {
+                                continue;
+                            }
+                            if (!service.ServiceType.IsInterface || service.ServiceType.IsAbstract || service.ServiceType.IsNotPublic)
+                            {
+                                continue;
+                            }
                             //originalServices.Add(service);
 
+                            var isImplementationGeneric = service.ImplementationType is null
+                            ? false
+                            : service.ImplementationType.IsGenericType && service.ImplementationType.IsGenericTypeDefinition;
+                            if (service.ImplementationType is not null)
+                            {
+                                var asdf = 9;
+                            }
+                            if (isImplementationGeneric)
+                            {
+                                var asdf = 9;
+                            }
+                            var isGenericTypeDefinition = isImplementationGeneric
+                                && service.ServiceType.IsGenericType
+                                && service.ServiceType.IsGenericTypeDefinition
+                                && service.ServiceType.ContainsGenericParameters; ;
+                            //var serviceType = isGenericTypeDefinition
+                            //        ? service.ServiceType.GetGenericTypeDefinition()
+                            //        : service.ServiceType;
+                            if (isGenericTypeDefinition)
+                            {
+                                var x = 0;
+                                continue;
+                                //var asdf = new ServiceDescriptor(service.ServiceType, service.ImplementationInstance, service.Lifetime);
+                            }
+
+                            services.Remove(service);
                             var descriptor = new ServiceDescriptor(
                                 service.ServiceType,
                                 (sp) =>
@@ -240,17 +334,27 @@
                                     }
                                     var getService = new Func<Guid, object>((key) =>
                                     {
+                                        var scopedServiceProvider = services.BuildServiceProvider();
+
+                                        if (service.ImplementationFactory is not null)
+                                        {
+                                            return service.ImplementationFactory.Invoke(scopedServiceProvider);
+                                        }
+                                        if (service.ImplementationInstance is not null)
+                                        {
+                                            return service.ImplementationInstance;
+                                        }
+                                        // TODO - may need to consider the generic type and create an implementation for what ever the generic is
                                         var registeredImplementationType = service.ImplementationType;
                                         var hasEmptyOrDefaultConstr =
                                           registeredImplementationType.GetConstructor(Type.EmptyTypes) != null ||
                                           registeredImplementationType.GetConstructors(BindingFlags.Instance | BindingFlags.Public)
                                         .Any(x => x.GetParameters().All(p => p.IsOptional));
 
-                                        var scopedServiceProvider = services.BuildServiceProvider();
-                                    // the descriptor delegate needs the parent key created here..
-                                    // this way it can 
+                                        // the descriptor delegate needs the parent key created here..
+                                        // this way it can 
 
-                                    this.serviceProviderScopes.Add(scopedServiceProvider.GetHashCode(), key); // Guid.NewGuid()); //<---
+                                        this.serviceProviderScopes.Add(scopedServiceProvider.GetHashCode(), key); // Guid.NewGuid()); //<---
                                         var activatedService = hasEmptyOrDefaultConstr
                                             ? Activator.CreateInstance(registeredImplementationType)
                                             : Activator.CreateInstance(registeredImplementationType, new[] { scopedServiceProvider as IServiceProvider });
@@ -270,34 +374,71 @@
                                     return proxy;
                                 },
                                 service.Lifetime);
+                            //if (service.ServiceType.FullName.IndexOf("IOptions") > -1)
+                            //{
+                            //    continue;
+                            //}
+                            //switch (service.Lifetime)
+                            //{
+                            //    case ServiceLifetime.Singleton:
+                            //        {
+                            //            services.AddSingleton(service.ServiceType, sp => implementationFactory.Invoke(sp, service));
+                            //            break;
+                            //        }
+                            //    case ServiceLifetime.Scoped:
+                            //        {
+                            //            services.AddScoped(service.ServiceType, sp => implementationFactory.Invoke(sp, service));
+                            //            break;
+                            //        }
+                            //    case ServiceLifetime.Transient:
+                            //        {
+                            //            services.AddTransient(service.ServiceType, sp => implementationFactory.Invoke(sp, service));
+                            //            break;
+                            //        }
+                            //}
+                            services.Add(descriptor);
                         }
-                        // @TODO - remove and replace sc
-                        //var dbContextDescriptor = services.SingleOrDefault(
-                        //    d => d.ServiceType ==
-                        //        typeof(DbContextOptions<ApplicationDbContext>));
 
-                        //services.Remove(dbContextDescriptor);
+                        // adding microservice 
+                        services.AddScoped(microservice.FacetType, sp => implementationFactory.Invoke(sp, null));
+                        //services.Add(new ServiceDescriptor(
+                        //        microservice.FacetType,
+                        //        (sp) =>
+                        //        {
+                        //            // do we care about the first sp?
+                        //            //  if sp is not in dict, we can assume it is for the first children
+                        //            // the parent key is actually the one that created this 
+                        //            Guid parentKey = Guid.Empty;
+                        //            var spHash = sp.GetHashCode();
+                        //            if (!this.serviceProviderScopes.ContainsKey(spHash))
+                        //            {
+                        //                parentKey = Guid.NewGuid();
+                        //                this.serviceProviderScopes.Add(spHash, parentKey);
+                        //            }
+                        //            else
+                        //            {
+                        //                parentKey = this.serviceProviderScopes[spHash];
+                        //            }
+                        //            var getService = new Func<Guid, object>((key) =>
+                        //            {
+                        //                throw new Exception("This should never invoke");
+                        //            });
+                        //            var proxy = CoarseSoftware.Testing.Framework.Core.ProxyV2.Client.MockServiceProxy.Create(
+                        //                microservice.FacetType,
+                        //                openChannel,
+                        //                closeChannel,
+                        //                getService,
+                        //                parentKey,
+                        //                genericTestExpectationComparerType,
+                        //                explicitTestExpectationComparerTypes,
+                        //                microservice,
+                        //                configuration
+                        //                );
+                        //            return proxy;
+                        //        },
+                        //        ServiceLifetime.Scoped)
+                        //    );
 
-                        //var dbConnectionDescriptor = services.SingleOrDefault(
-                        //    d => d.ServiceType ==
-                        //        typeof(DbConnection));
-
-                        //services.Remove(dbConnectionDescriptor);
-
-                        //// Create open SqliteConnection so EF won't automatically close it.
-                        //services.AddSingleton<DbConnection>(container =>
-                        //{
-                        //    var connection = new SqliteConnection("DataSource=:memory:");
-                        //    connection.Open();
-
-                        //    return connection;
-                        //});
-
-                        //services.AddDbContext<ApplicationDbContext>((container, options) =>
-                        //{
-                        //    var connection = container.GetRequiredService<DbConnection>();
-                        //    options.UseSqlite(connection);
-                        //});
                     });
 
                     builder.UseEnvironment("Development");
@@ -305,6 +446,10 @@
 
                 public class ServiceStat
                 {
+                    public ServiceStat()
+                    {
+                        this.ChildServices = new List<ServiceStat>();
+                    }
                     public Guid Key { get; set; }
                     public string TypeName { get; set; }
                     public string MethodName { get; set; }

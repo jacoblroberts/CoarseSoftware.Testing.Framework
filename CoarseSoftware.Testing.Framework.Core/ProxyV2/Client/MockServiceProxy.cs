@@ -13,7 +13,7 @@
         private IEnumerable<Type> explicitTestExpectationComparerTypes { get; set; }
         private Type serviceType { get; set; }
         //private object service {  get; set; }
-        private ClientTestCase.Microservice microservice { get; set; }
+        private GenericClientTestCase.Microservice microservice { get; set; }
         private TestRunnerConfiguration configuration { get; set; }
         private Guid parentKey { get; set; }
         //private Func<ClientTestCase.ClientTestStats.Service> createActiveChildStat { get; set; }
@@ -77,6 +77,12 @@
                 response = task;
             }
 
+            if (response is null)
+            {
+                closeChannel.Invoke(this.parentKey, key, "null");
+                return response;
+            }
+
             // i think response could be null for Task/void methods
             var responseTypeName = response.GetType().FullName;
             closeChannel.Invoke(this.parentKey, key, responseTypeName);
@@ -105,7 +111,7 @@
             //Action<TestStatStore.ClientTestStat.Service> onChildStatComplete, 
             Type? genericTestExpectationComparerType, 
             IEnumerable<Type> explicitTestExpectationComparerTypes, 
-            ClientTestCase.Microservice microservice, 
+            GenericClientTestCase.Microservice microservice, 
             TestRunnerConfiguration configuration)
         {
 #if NET8_0

@@ -1072,9 +1072,10 @@
                 if (!string.IsNullOrEmpty(outputResultsFilePath))
                 {
                     var config = Helpers.GetTestRunnerConfiguration();
-
+                    
                     var systemResults = new SystemResults
                     {
+                        .// TODO - check stats for generic client
                         // when writing to testStatStore, we need to check for message and add the item to a new model to represent that
                         UseCaseTrackings = testStatStore.UseCaseTrackings,
                         MessageListeners = testStatStore.MessageListeners,
