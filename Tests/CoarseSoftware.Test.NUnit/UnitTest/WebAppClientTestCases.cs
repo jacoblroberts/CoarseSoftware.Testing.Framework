@@ -40,7 +40,8 @@
                         var responseTask = client.GetAsync("/Dashboard/Flow");
                         responseTask.Wait();
                         var response = responseTask.Result;
-                        return response;
+                        //return response;
+                        return string.Empty;
                     }
                 }
             };

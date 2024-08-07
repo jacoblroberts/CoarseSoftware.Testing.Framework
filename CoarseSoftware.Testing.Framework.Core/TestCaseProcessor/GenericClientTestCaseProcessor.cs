@@ -7,7 +7,7 @@
 
     public static class GenericClientTestCaseProcessor
     {
-        public static TestCaseData Build(GenericClientTestCase genericClientTestCase, Type? genericTestExpectationComparerType, IEnumerable<Type> explicitTestExpectationComparerTypes)
+        public static TestCaseData Build(GenericClientTestCase genericClientTestCase, TestStatStore.ServiceStat serviceStat, Type? genericTestExpectationComparerType, IEnumerable<Type> explicitTestExpectationComparerTypes)
         {
 #if NET8_0
             if (genericClientTestCase.EntryPoint.GetType().GetGenericTypeDefinition().Equals(typeof(GenericClientTestCase.WebApplicationEntryPointWrapper<>)))
@@ -29,7 +29,8 @@
                             genericTestExpectationComparerType,
                             explicitTestExpectationComparerTypes,
                             genericClientTestCase.Service,
-                            config
+                            config,
+                            serviceStat
                         });
                         return result;
                     }

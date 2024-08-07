@@ -1,6 +1,7 @@
 ﻿namespace CoarseSoftware.Testing.Framework.Core
 {
     using CoarseSoftware.Testing.Framework.Core.Proxy;
+    using CoarseSoftware.Testing.Framework.Core.Proxy.Client;
 #if NET8_0
     using Microsoft.AspNetCore.Hosting;
     using Microsoft.AspNetCore.Mvc.Testing;
@@ -64,14 +65,16 @@
                 Type? genericTestExpectationComparerType,
                 IEnumerable<Type> explicitTestExpectationComparerTypes,
                 Microservice microservice,
-                TestRunnerConfiguration configuration
+                TestRunnerConfiguration configuration,
+                TestStatStore.ServiceStat serviceStat
                 )
             {
                 var webApplicationFactory = new CustomWebApplicationFactory<TProgram>(
                     genericTestExpectationComparerType,
                     explicitTestExpectationComparerTypes,
                     microservice,
-                    configuration
+                    configuration,
+                    serviceStat
                     ) as WebApplicationFactory<TProgram>;
                 return this.EntryPoint.Invoke(webApplicationFactory);
             }
@@ -86,17 +89,18 @@
                     Type? genericTestExpectationComparerType,
                     IEnumerable<Type> explicitTestExpectationComparerTypes,
                     Microservice microservice,
-                    TestRunnerConfiguration configuration
+                    TestRunnerConfiguration configuration,
+                    TestStatStore.ServiceStat serviceStat
                     )
                 {
                     this.genericTestExpectationComparerType = genericTestExpectationComparerType;
                     this.explicitTestExpectationComparerTypes = explicitTestExpectationComparerTypes;
                     this.microservice = microservice;
                     this.configuration = configuration;
-                    this.serviceStats = new List<ServiceStat>();
+                    this.serviceStats = serviceStat.ChildServices; // new List<TestStatStore.ServiceStat>();
                 }
 
-                public IEnumerable<ServiceStat> serviceStats {  get; private set; }
+                public IEnumerable<TestStatStore.ServiceStat> serviceStats {  get; private set; }
                 private Dictionary<int, Guid> serviceProviderScopes = new Dictionary<int, Guid>();
 
                 protected override void ConfigureWebHost(IWebHostBuilder builder)
@@ -125,13 +129,13 @@
                         //      it can then track the parent.  The service proxy, being generated at the same time will get the parent key.
                         //          now, we get to treat everything, even though it may be scoped or singleton, transitive like.  meaning the descriptor delegate will be invoked each time a service is requested.
      
-                        Func<Guid, IEnumerable<ServiceStat>, ServiceStat> findOpenedParent = null;
-                        var openChannel = new Action<Guid, Guid, TestStatStore.ClientTestStat.Service>((parentKey, key, serviceStat) =>
+                        Func<Guid, IEnumerable<TestStatStore.ServiceStat>, TestStatStore.ServiceStat> findOpenedParent = null;
+                        var openChannel = new Action<Guid, Guid, CoarseSoftware.Testing.Framework.Core.ProxyV2.Client.MockServiceProxy.Service>((parentKey, key, serviceStat) =>
                         {
                             // find a matching parent key
                             // if none, we can assume this is the top most trackable
                             var openedParent = findOpenedParent.Invoke(parentKey, this.serviceStats);
-                            var child = new ServiceStat
+                            var child = new TestStatStore.ServiceStat
                             {
                                 Key = key,
                                 MethodName = serviceStat.MethodName,
@@ -147,7 +151,7 @@
                                 this.serviceStats = this.serviceStats.Append(child);
                             }
                         });
-                        findOpenedParent = new Func<Guid, IEnumerable<ServiceStat>, ServiceStat>((parentKey, serviceStats) =>
+                        findOpenedParent = new Func<Guid, IEnumerable<TestStatStore.ServiceStat>, TestStatStore.ServiceStat>((parentKey, serviceStats) =>
                         {
                             foreach (var serviceStat in serviceStats)
                             {
@@ -172,7 +176,7 @@
                             return null;
                         });
 
-                        Func<Guid, Guid, IEnumerable<ServiceStat>, ServiceStat> findOpenedService = null;
+                        Func<Guid, Guid, IEnumerable<TestStatStore.ServiceStat>, TestStatStore.ServiceStat> findOpenedService = null;
                         var closeChannel = new Action<Guid, Guid, string>((parentKey, key, responseTypeName) =>
                         {
                             var openedService = findOpenedService.Invoke(parentKey, key, this.serviceStats);
@@ -182,7 +186,7 @@
                             }
                             openedService.ResponseTypeName = responseTypeName;
                         });
-                        findOpenedService = new Func<Guid, Guid, IEnumerable<ServiceStat>, ServiceStat>((parentKey, key, serviceStats) =>
+                        findOpenedService = new Func<Guid, Guid, IEnumerable<TestStatStore.ServiceStat>, TestStatStore.ServiceStat>((parentKey, key, serviceStats) =>
                         {
                             // initially we do not have a parent so if we have the key at one of the stats, that is the one
                             // FUTURE ENHANCEMENTS - when the parent is created, set that as the first parent.
@@ -286,31 +290,19 @@
                             {
                                 continue;
                             }
-                            //originalServices.Add(service);
 
                             var isImplementationGeneric = service.ImplementationType is null
-                            ? false
-                            : service.ImplementationType.IsGenericType && service.ImplementationType.IsGenericTypeDefinition;
-                            if (service.ImplementationType is not null)
-                            {
-                                var asdf = 9;
-                            }
-                            if (isImplementationGeneric)
-                            {
-                                var asdf = 9;
-                            }
+                                ? false
+                                : service.ImplementationType.IsGenericType && service.ImplementationType.IsGenericTypeDefinition;
+
                             var isGenericTypeDefinition = isImplementationGeneric
                                 && service.ServiceType.IsGenericType
                                 && service.ServiceType.IsGenericTypeDefinition
-                                && service.ServiceType.ContainsGenericParameters; ;
-                            //var serviceType = isGenericTypeDefinition
-                            //        ? service.ServiceType.GetGenericTypeDefinition()
-                            //        : service.ServiceType;
+                                && service.ServiceType.ContainsGenericParameters;
+                            
                             if (isGenericTypeDefinition)
                             {
-                                var x = 0;
                                 continue;
-                                //var asdf = new ServiceDescriptor(service.ServiceType, service.ImplementationInstance, service.Lifetime);
                             }
 
                             services.Remove(service);
@@ -374,88 +366,17 @@
                                     return proxy;
                                 },
                                 service.Lifetime);
-                            //if (service.ServiceType.FullName.IndexOf("IOptions") > -1)
-                            //{
-                            //    continue;
-                            //}
-                            //switch (service.Lifetime)
-                            //{
-                            //    case ServiceLifetime.Singleton:
-                            //        {
-                            //            services.AddSingleton(service.ServiceType, sp => implementationFactory.Invoke(sp, service));
-                            //            break;
-                            //        }
-                            //    case ServiceLifetime.Scoped:
-                            //        {
-                            //            services.AddScoped(service.ServiceType, sp => implementationFactory.Invoke(sp, service));
-                            //            break;
-                            //        }
-                            //    case ServiceLifetime.Transient:
-                            //        {
-                            //            services.AddTransient(service.ServiceType, sp => implementationFactory.Invoke(sp, service));
-                            //            break;
-                            //        }
-                            //}
+
                             services.Add(descriptor);
                         }
 
                         // adding microservice 
                         services.AddScoped(microservice.FacetType, sp => implementationFactory.Invoke(sp, null));
-                        //services.Add(new ServiceDescriptor(
-                        //        microservice.FacetType,
-                        //        (sp) =>
-                        //        {
-                        //            // do we care about the first sp?
-                        //            //  if sp is not in dict, we can assume it is for the first children
-                        //            // the parent key is actually the one that created this 
-                        //            Guid parentKey = Guid.Empty;
-                        //            var spHash = sp.GetHashCode();
-                        //            if (!this.serviceProviderScopes.ContainsKey(spHash))
-                        //            {
-                        //                parentKey = Guid.NewGuid();
-                        //                this.serviceProviderScopes.Add(spHash, parentKey);
-                        //            }
-                        //            else
-                        //            {
-                        //                parentKey = this.serviceProviderScopes[spHash];
-                        //            }
-                        //            var getService = new Func<Guid, object>((key) =>
-                        //            {
-                        //                throw new Exception("This should never invoke");
-                        //            });
-                        //            var proxy = CoarseSoftware.Testing.Framework.Core.ProxyV2.Client.MockServiceProxy.Create(
-                        //                microservice.FacetType,
-                        //                openChannel,
-                        //                closeChannel,
-                        //                getService,
-                        //                parentKey,
-                        //                genericTestExpectationComparerType,
-                        //                explicitTestExpectationComparerTypes,
-                        //                microservice,
-                        //                configuration
-                        //                );
-                        //            return proxy;
-                        //        },
-                        //        ServiceLifetime.Scoped)
-                        //    );
 
                     });
 
-                    builder.UseEnvironment("Development");
-                }
-
-                public class ServiceStat
-                {
-                    public ServiceStat()
-                    {
-                        this.ChildServices = new List<ServiceStat>();
-                    }
-                    public Guid Key { get; set; }
-                    public string TypeName { get; set; }
-                    public string MethodName { get; set; }
-                    public IEnumerable<string> RequestTypeNames { get; set; }
-                    public string ResponseTypeName { get; set; }
-                    public IEnumerable<ServiceStat> ChildServices { get; set; }
+                    // TODO - make environment configurable
+                    builder.UseEnvironment("Testing");
                 }
             }
         }

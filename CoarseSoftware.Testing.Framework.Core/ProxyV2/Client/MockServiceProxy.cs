@@ -6,7 +6,7 @@
 
     internal class MockServiceProxy : DispatchProxy
     {
-        private Action<Guid, Guid, TestStatStore.ClientTestStat.Service> openChannel {  get; set; }
+        private Action<Guid, Guid, Service> openChannel {  get; set; }
         private Action<Guid, Guid, string> closeChannel { get; set; }
         private Func<Guid, object> getService { get; set; }
         private Type? genericTestExpectationComparerType { get; set; }
@@ -20,7 +20,7 @@
 
         protected override object? Invoke(MethodInfo? targetMethod, object?[]? args)
         {
-            var childStat = new TestStatStore.ClientTestStat.Service(); //this.createActiveChildStat();
+            var childStat = new Service(); //this.createActiveChildStat();
             var key = Guid.NewGuid();
             if (serviceType.Equals(microservice.FacetType) && targetMethod.Name == microservice.ExpectedMethodName)
             {
@@ -102,13 +102,11 @@
         }
 
         public static object Create(
-            //object service, 
             Type serviceType,
-            Action<Guid, Guid, TestStatStore.ClientTestStat.Service> openChannel,
+            Action<Guid, Guid, Service> openChannel,
             Action<Guid, Guid, string> closeChannel,
             Func<Guid, object> getService,
             Guid parentKey,
-            //Action<TestStatStore.ClientTestStat.Service> onChildStatComplete, 
             Type? genericTestExpectationComparerType, 
             IEnumerable<Type> explicitTestExpectationComparerTypes, 
             GenericClientTestCase.Microservice microservice, 
@@ -132,5 +130,14 @@
             proxyTypes.parentKey = parentKey;
             return proxy;
         }
+
+        public class Service
+        {
+            public string TypeName { get; set; }
+            public string MethodName { get; set; }
+            public IEnumerable<string> RequestTypeNames { get; set; }
+        }
     }
+
+
 }

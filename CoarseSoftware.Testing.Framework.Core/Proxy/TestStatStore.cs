@@ -20,6 +20,7 @@
             this.UseCaseTrackings = new List<UseCaseTracking>();
             this.MessageListeners = new List<MessageListener>();
             this.ClientTestStats = new List<ClientTestStat>();
+            this.ServiceStats = new List<ServiceStat>();
         }
 
         /// <summary>
@@ -41,6 +42,7 @@
 
         public IEnumerable<ClientTestStat> ClientTestStats { get; set; }
 
+        public IEnumerable<ServiceStat> ServiceStats {  get; set; }
         /// <summary>
         /// All listeners and where they are registerd.
         /// </summary>
@@ -151,6 +153,23 @@
             }
 
 
+        }
+
+        /// <summary>
+        /// This is the most generic service invocation graph
+        /// </summary>
+        public class ServiceStat
+        {
+            public ServiceStat()
+            {
+                this.ChildServices = new List<ServiceStat>();
+            }
+            public Guid Key { get; set; }
+            public string TypeName { get; set; }
+            public string MethodName { get; set; }
+            public IEnumerable<string> RequestTypeNames { get; set; }
+            public string ResponseTypeName { get; set; }
+            public IEnumerable<ServiceStat> ChildServices { get; set; }
         }
     }
 }

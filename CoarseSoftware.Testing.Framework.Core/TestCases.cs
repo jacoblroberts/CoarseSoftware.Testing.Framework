@@ -1075,7 +1075,7 @@
                     
                     var systemResults = new SystemResults
                     {
-                        .// TODO - check stats for generic client
+                        // TODO - check stats for generic client
                         // when writing to testStatStore, we need to check for message and add the item to a new model to represent that
                         UseCaseTrackings = testStatStore.UseCaseTrackings,
                         MessageListeners = testStatStore.MessageListeners,
@@ -1152,7 +1152,12 @@
                 }
                 foreach (var item in testCaseEnumerable)
                 {
-                    yield return GenericClientTestCaseProcessor.Build(item, genericTestModelComparerType, explicitTestModelComparerTypess);
+                    var serviceStat = new TestStatStore.ServiceStat
+                    {
+                        TypeName = item.Client
+                    };
+                    testStatStore.ServiceStats = testStatStore.ServiceStats.Append(serviceStat);
+                    yield return GenericClientTestCaseProcessor.Build(item, serviceStat, genericTestModelComparerType, explicitTestModelComparerTypess);
                 }
             }
 
