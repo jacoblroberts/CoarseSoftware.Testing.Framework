@@ -428,6 +428,7 @@
 
         public static async Task<bool> RunTestCase(TestCaseDataRequest testCaseDataRequest, TestStatStore? testStatStore = null)
         {
+            var config = Helpers.GetTestRunnerConfiguration();
             var conceptInterfaceTypeName = testCaseDataRequest.TestCase.ConceptInterfaceType.FullName;
 
             // build the service provider
@@ -451,9 +452,13 @@
             var response = resultProperty.GetValue(task);
             if (response.GetType().FullName != "System.Threading.Tasks.VoidTaskResult")
             {
-                var responseData = response.GetType().GetProperty("Data").GetValue(response);
-
-                var expectedResponseData = testCaseDataRequest.ExpectedResponse.GetType().GetProperty("Data").GetValue(testCaseDataRequest.ExpectedResponse);
+                object responseData = response;
+                object expectedResponseData = testCaseDataRequest.ExpectedResponse; 
+                if (config.ResponseWrapper != null && response.GetType().IsGenericType && response.GetType().GetGenericTypeDefinition().Equals(config.ResponseWrapper.OpenWrapperType))
+                {
+                    responseData = response.GetType().GetProperty(config.ResponseWrapper.DtoPropertyName).GetValue(response);
+                    expectedResponseData = testCaseDataRequest.ExpectedResponse.GetType().GetProperty(config.ResponseWrapper.DtoPropertyName).GetValue(testCaseDataRequest.ExpectedResponse);
+                }
 
                 Assert.AreEqual(expectedResponseData.GetType().FullName, responseData.GetType().FullName);
 

@@ -96,7 +96,11 @@
 
             if (isTask)
             {
-                var convert_method = typeof(IntegratedServiceProxy).GetMethod("ConvertToTaskHack").MakeGenericMethod(response.GetType());
+                var responseType = targetMethod.ReturnType.IsGenericType
+                    ? targetMethod.ReturnType.GetGenericArguments().First()
+                    : response.GetType();
+
+                var convert_method = typeof(IntegratedServiceProxy).GetMethod("ConvertToTaskHack").MakeGenericMethod(responseType);
                 var result = convert_method.Invoke(null, new object[] { response });
                 return result;
             }
