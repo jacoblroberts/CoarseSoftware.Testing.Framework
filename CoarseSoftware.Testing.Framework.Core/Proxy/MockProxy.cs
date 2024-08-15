@@ -71,7 +71,8 @@
                 throw new Exception($"The request type: {requestData.GetType().FullName} does not match the expected request type: {expectedRequestData.GetType().FullName}");
             }
 
-            Helpers.CompareExpectedToActual(expectedRequestData, requestData, nextResponse.IngoredPropertyNames, explicitTestExpectationComparerTypes, genericTestExpectationComparerType);
+            //Helpers.CompareExpectedToActual(expectedRequestData, requestData, nextResponse.IngoredPropertyNames, explicitTestExpectationComparerTypes, genericTestExpectationComparerType);
+            Helpers.CompareExpectedToActual(nextResponse.ExpectedRequest, args.First(), nextResponse.IngoredPropertyNames, explicitTestExpectationComparerTypes, genericTestExpectationComparerType);
 
             if (nextResponse.Item is not null)
             {
