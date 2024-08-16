@@ -278,6 +278,10 @@
                 Method = "FlowAsync",
                 Request = new Request<AdministrationManagerFacet.OnStepCompleteBase>
                 {
+                    Context = new RequestContext
+                    {
+                        SomeId = "someId123"
+                    },
                     Data = new AdministrationManagerFacet.OnStepCompleteBase
                     { }
                 },
@@ -314,6 +318,17 @@
                         ExpectedRequest = new SomeCrossVolatilityMessageEvent
                         {
                             SomeProperty = "a property value"
+                        },
+                        IngoredExpectedRequestPropertyNames = new List<string>
+                        {
+                            // works
+                            //"CoarseSoftware.Testing.Framework.Examples.Test.NUnit.System.iFX.Event.Model.SomeCrossVolatilityMessageEvent.Context",
+                            // works
+                            //"CoarseSoftware.Testing.Framework.Examples.Test.System.iFX.RequestContext.SomeId",
+                            // does not work
+                            "CoarseSoftware.Testing.Framework.Examples.Test.System.iFX.IRequestContext.SomeId",
+                            // works
+                            "*Context*"
                         }
                     },
                     new UnitTestCase.ServiceOperation
@@ -324,6 +339,10 @@
                         {
                             Data = new JobAccessFacet.RequestBase
                             { }
+                        },
+                        IngoredExpectedRequestPropertyNames = new List<string>
+                        {
+                            "*Context*"
                         },
                         Response = new UnitTestCase.Response.MockResponse
                         {

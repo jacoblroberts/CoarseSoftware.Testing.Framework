@@ -49,6 +49,7 @@
 
             jobAccessResponse = jobAccess.FilterAsync(new Request<JobAccessFacet.RequestBase>
             {
+                Context = stepComplete.Context,
                 Data = new JobAccessFacet.RequestBase
                 { }
             }, cancellationToken);
