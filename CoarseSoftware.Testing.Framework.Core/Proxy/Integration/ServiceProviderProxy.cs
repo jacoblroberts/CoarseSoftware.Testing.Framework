@@ -20,7 +20,11 @@
             var serviceType = args[0] as Type;
 
             var businessService = BusinessService.None;
-            if (configuration.Wildcard.ManagerFacetWildCards.Where(w => !string.IsNullOrEmpty(w) && serviceType.FullName.Contains(w)).Any())
+            if (configuration.Wildcard.UtilityFacetWildCards.Where(w => !string.IsNullOrEmpty(w) && serviceType.FullName.Contains(w)).Any())
+            {
+                businessService = BusinessService.Utility;
+            }
+            else if (configuration.Wildcard.ManagerFacetWildCards.Where(w => !string.IsNullOrEmpty(w) && serviceType.FullName.Contains(w)).Any())
             {
                 businessService = BusinessService.Manager;
             }
@@ -35,10 +39,6 @@
             else if (configuration.Wildcard.ResourceFacetWildCards.Where(w => !string.IsNullOrEmpty(w) && serviceType.FullName.Contains(w)).Any())
             {
                 businessService = BusinessService.Resource;
-            }
-            else if (configuration.Wildcard.UtilityFacetWildCards.Where(w => !string.IsNullOrEmpty(w) && serviceType.FullName.Contains(w)).Any())
-            {
-                businessService = BusinessService.Utility;
             }
 
             if (targetMethod.Name != "GetService" || businessService == BusinessService.None)
