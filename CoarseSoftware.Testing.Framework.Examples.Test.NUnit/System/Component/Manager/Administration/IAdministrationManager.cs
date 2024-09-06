@@ -11,6 +11,8 @@
     public class OnStepActivateBase
     {
         public string SomeBaseClassField { get; set; } = "Hello from base class";
+        public IEnumerable<string> Strings { get; set; }
+        public IEnumerable<IEnumerable<string>> Multidimensional { get; set; }
     }
 }
 
@@ -27,7 +29,7 @@ namespace CoarseSoftware.Testing.Framework.Examples.Test.System.Component.Manage
         public double Double { get; set; }
         public string String { get; set; }
         public IEnumerable<string> Strings { get; set; }
-        public IEnumerable<bool> Lists {  get; set; }
+        public IEnumerable<bool> Bools {  get; set; }
         public IEnumerable<SubClass> SubClasses { get; set; }
         public SubClass SubClassWithValue { get; set; }
         public SubClass SubClassNullValue { get; set; }

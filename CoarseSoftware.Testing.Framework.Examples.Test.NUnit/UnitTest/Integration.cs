@@ -83,7 +83,7 @@
                                 "String1",
                                 "String2"
                             },
-                            Lists = new List<bool>
+                            Bools = new List<bool>
                             {
                             },
                             SubClassIgnore = new AdministrationManagerFacet.UseCases.SomeContext.DerivedOnStepComplete.SubClassToIgnore
@@ -125,7 +125,25 @@
                     {
                         Data = new AdministrationManagerFacet.OnStepActivateBase
                         {
-                            SomeBaseClassField = "Types Tested"
+                            SomeBaseClassField = "Types Tested",
+                            Strings = new List<string>
+                            {
+                                "item-1",
+                                "item-2"
+                            },
+                                                Multidimensional = new List<IEnumerable<string>>
+                            {
+                                new List<string>
+                                {
+                                    "item-1-1",
+                                    "item-1-2"
+                                },
+                                new List<string>
+                                {
+                                    "item-2-1",
+                                    "item-2-2"
+                                }
+                            }
                         }
                     }
                 }
@@ -160,7 +178,7 @@
                                 "String1",
                                 "String2"
                             },
-                            Lists = new List<bool>
+                            Bools = new List<bool>
                             {
                             },
                             SubClassIgnore = new AdministrationManagerFacet.UseCases.SomeContext.DerivedOnStepComplete.SubClassToIgnore
@@ -202,7 +220,25 @@
                     {
                         Data = new AdministrationManagerFacet.OnStepActivateBase
                         {
-                            SomeBaseClassField = "Types Tested"
+                            SomeBaseClassField = "Types Tested",
+                            Strings = new List<string>
+                            {
+                                "item-1",
+                                "item-2"
+                            },
+                                                Multidimensional = new List<IEnumerable<string>>
+                            {
+                                new List<string>
+                                {
+                                    "item-1-1",
+                                    "item-1-2"
+                                },
+                                new List<string>
+                                {
+                                    "item-2-1",
+                                    "item-2-2"
+                                }
+                            }
                         }
                     }
                 }

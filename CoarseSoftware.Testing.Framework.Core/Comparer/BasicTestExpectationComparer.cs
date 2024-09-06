@@ -7,6 +7,7 @@
     using System.Collections;
     using System.Reflection;
     using System.Data;
+    using NUnit.Framework.Interfaces;
 
     public class BasicTestExpectationComparer
     {
@@ -54,6 +55,40 @@ Actual Type: {actual.GetType().FullName}
             }
         }
 
+        private string getSimpleTypeName(Type type)
+        {
+            var listTypeName = string.Empty;
+            if (type.Equals(typeof(string)))
+            {
+                listTypeName = "string";
+            }
+            else if (type.Equals(typeof(bool)))
+            {
+                listTypeName = "bool";
+            }
+            else if (type.Equals(typeof(decimal)))
+            {
+                listTypeName = "decimal";
+            }
+            else if (type.Equals(typeof(float)))
+            {
+                listTypeName = "float";
+            }
+            else if (type.Equals(typeof(int)))
+            {
+                listTypeName = "int";
+            }
+            else if (type.Equals(typeof(double)))
+            {
+                listTypeName = "double";
+            }
+            else
+            {
+                listTypeName = type.FullName.Replace("+", ".").Replace(" ", "");
+            }
+            return listTypeName;
+        }
+
         private string printProperties(object obj, int indent)
         {
             if (obj == null)
@@ -62,6 +97,50 @@ Actual Type: {actual.GetType().FullName}
             string indentString = new string(' ', indent);
 
             Type objType = obj.GetType();
+
+            // handling multi-dimensional array
+            //if (!typeof(string).Equals(objType) && typeof(IEnumerable).IsAssignableFrom(objType))
+            //{
+            //    var listEntries = obj as IList;
+
+            //    if (listEntries != null)
+            //    {
+            //        var sb = new List<string>();
+            //        Type itemType = objType.GetGenericArguments()[0].GetGenericArguments()[0];
+            //        var listTypeName = string.Empty;
+            //        if (itemType.Equals(typeof(string)))
+            //        {
+            //            listTypeName = "string";
+            //        }
+            //        else if (itemType.Equals(typeof(bool)))
+            //        {
+            //            listTypeName = "bool";
+            //        }
+            //        else if (itemType.Equals(typeof(decimal)))
+            //        {
+            //            listTypeName = "decimal";
+            //        }
+            //        else if (itemType.Equals(typeof(float)))
+            //        {
+            //            listTypeName = "float";
+            //        }
+            //        else if (itemType.Equals(typeof(int)))
+            //        {
+            //            listTypeName = "int";
+            //        }
+            //        else if (itemType.Equals(typeof(double)))
+            //        {
+            //            listTypeName = "double";
+            //        }
+            //        else
+            //        {
+            //            listTypeName = itemType.FullName.Replace("+", ".").Replace(" ", "");
+            //        }
+            //        sb.Add($"{indentString}{property.Name} = new List<IEnumerable<{listTypeName}>>");
+            //        sb.Add($"{indentString}{{");
+            //    }
+            //}
+
 
             var objectResponse = new List<string>();
             objectResponse.Add($"{indentString}{{");
@@ -81,6 +160,92 @@ Actual Type: {actual.GetType().FullName}
 
                 if (property.PropertyType.IsArray)
                     propValue = (Array)property.GetValue(obj);
+                else if (!typeof(string).Equals(property.PropertyType)
+                        && typeof(IEnumerable).IsAssignableFrom(property.PropertyType)
+                        && !typeof(string).Equals(property.PropertyType.GetGenericArguments()[0])
+                        && typeof(IEnumerable).IsAssignableFrom(property.PropertyType.GetGenericArguments()[0]))
+                {
+                    var listOfLists = (IEnumerable<object>)property.GetValue(obj);
+                    var listIndent = internalIndent + 4;
+                    var listIndentString = new string(' ', listIndent);
+                    var output = new List<string>();
+                    // need the propertyName =
+                    // get the generic type and create new List<Ienumerble<string>>
+                    var genericType = getSimpleTypeName(property.PropertyType.GetGenericArguments()[0].GetGenericArguments()[0]);
+                    output.Add($@"{internalIndentString}{property.Name} = new List<IEnumerable<{genericType}>>
+{internalIndentString}{{");
+                    var listOfListsIndex = 1;
+                    foreach (var value in listOfLists)
+                    {
+                        var sb = new List<string>();
+                        sb.Add($@"{listIndentString}new List<{genericType}>
+{listIndentString}{{");
+                        var list = (IEnumerable<object>)value;
+                        var items = new List<string>();
+                        for (int i = 0; i < list.Count(); ++i)
+                        {
+                            var elem = list.ElementAt(i);
+
+                            switch (elem)
+                            {
+                                case string:
+                                    items.Add($"{new string(' ', listIndent + 4)}\"{elem}\"");
+                                    break;
+                                case int:
+                                case long:
+                                    items.Add($"{new string(' ', listIndent + 4)}{elem}");
+                                    break;
+                                case float:
+                                    items.Add($"{new string(' ', listIndent + 4)}{elem}f");
+                                    break;
+                                case double:
+                                    items.Add($"{new string(' ', listIndent + 4)}{elem}d");
+                                    break;
+                                case decimal:
+                                    items.Add($"{new string(' ', listIndent + 4)}{elem}m");
+                                    break;
+                                case bool:
+                                    items.Add($"{new string(' ', listIndent + 4)}{elem.ToString().ToLower()}");
+                                    break;
+                                case DateTime:
+                                    items.Add($"{new string(' ', listIndent + 4)}DateTime.Parse(\"{elem}\")");
+                                    break;
+                                case DateTimeOffset dto:
+                                    items.Add($"{new string(' ', listIndent + 4)}DateTimeOffset.Parse(\"{dto.ToUniversalTime().ToString("o")}\")");
+                                    break;
+                                default:
+                                    {
+                                        if (elem.GetType().IsEnum)
+                                        {
+                                            items.Add($"{new string(' ', listIndent + 4)}{elem.GetType().FullName.Replace("+", ".").Replace(" ", "")}.{elem}");
+                                            break;
+                                        }
+
+                                        items.Add($@"{new string(' ', listIndent + 4)}new {elem.GetType().FullName.Replace("+", ".").Replace(" ", "")}
+{printProperties(elem, listIndent + 4)}");
+                                        break;
+                                    }
+                            }
+                        }
+                        var itemIndex = 1;
+                        items = items.Where(i => !string.IsNullOrEmpty(i)).ToList();
+                        foreach (var item in items)
+                        {
+                            var isLast = itemIndex == items.Count;
+                            var ending = isLast ? string.Empty : ",";
+                            sb.Add($"{item}{ending}");
+                            itemIndex++;
+                        }
+                        var end = listOfListsIndex == listOfLists.Count() ? string.Empty : ",";
+                        sb.Add($"{new string(' ', listIndent)}}}{end}");
+
+                        output.Add(string.Join("\n", sb));
+                        listOfListsIndex++;
+                    }
+                    output.Add($"{internalIndentString}}}");
+                    propertyEntries.Add(string.Join("\n", output));
+                    continue;
+                }
                 else
                     propValue = property.GetValue(obj, null);
 

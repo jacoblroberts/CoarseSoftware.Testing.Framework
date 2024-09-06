@@ -24,7 +24,25 @@
                 {
                     Data = new OnStepActivateBase
                     {
-                        SomeBaseClassField = "Types Tested"
+                        SomeBaseClassField = "Types Tested",
+                        Multidimensional = new List<IEnumerable<string>>
+                        {
+                            new List<string>
+                            {
+                                "item-1-1",
+                                "item-1-2",
+                            },
+                            new List<string>
+                            {
+                                "item-2-1",
+                                "item-2-2",
+                            }
+                        },
+                        Strings = new List<string>
+                        {
+                            "item-1",
+                            "item-2"
+                        }
                     }
                 };
             }
