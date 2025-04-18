@@ -10,7 +10,8 @@
             DtoWrapper requestWrapper = null,
             DtoWrapper responseWrapper = null,
             ActualDumpBreakType breakOnActualDumpBreakPoint = 0,
-            bool ignoreDateTimeComparison = false
+            bool ignoreDateTimeComparison = false,
+            bool outputTestsAndConfigurationAsJson = false
             )
         {
             this.MaxDifferencesBeforeFailing = maxDifferencesBeforeFailing;
@@ -21,6 +22,7 @@
             this.ResponseWrapper = responseWrapper;
             this.BreakOnActualDumpBreakPoint = breakOnActualDumpBreakPoint;
             this.IgnoreDateTimeComparison = ignoreDateTimeComparison;
+            this.OutputTestsAndConfigurationAsJson = outputTestsAndConfigurationAsJson;
 
             InternalTestRunnerConfiguration.MaxDifferencesBeforeFailing = maxDifferencesBeforeFailing;
             InternalTestRunnerConfiguration.SystemResultsOutputPath = systemResultsOutputPath;
@@ -62,6 +64,12 @@
         /// Values can be service facet full names (namespace.facet) or wildcards (Component.Concept)
         /// </summary>
         public ServiceTypeWildcard Wildcard { get; private set; }
+
+        /// <summary>
+        /// Outputs a json representation of all tests as well as this configuration.  
+        /// Allows for better parsing of the data for system views.
+        /// </summary>
+        public bool OutputTestsAndConfigurationAsJson {  get; private set; }
 
         public enum ActualDumpBreakType
         {

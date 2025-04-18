@@ -1,6 +1,7 @@
 ﻿namespace CoarseSoftware.Testing.Framework.Core
 {
     using Microsoft.Extensions.DependencyInjection;
+    using System.Text.Json.Serialization;
 
     /// <summary>
     /// Client test case
@@ -33,6 +34,7 @@
         /// Used to register services.
         /// Note: if you want to overwrite a facet (ie; mock resource), register it last.  This way, if anything registers an instance, the last registration will win.
         /// </summary>
+        [JsonIgnore]
         public Action<IServiceCollection> ServiceRegistration { get; set; }
 
         /// <summary>
@@ -40,6 +42,7 @@
         /// This can be used to test full middleware or invoking the controller directly.  Possibly instantiating your MVVM and invoking a Command.
         /// Generics - response is the expected response.  Possibly null.
         /// </summary>
+        [JsonIgnore]
         public Func<IServiceProvider, object> EntryPoint { get; set; }
 
         /// <summary>

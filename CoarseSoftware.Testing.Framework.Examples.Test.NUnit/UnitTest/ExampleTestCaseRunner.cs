@@ -36,7 +36,8 @@
                         OpenWrapperType = typeof(Response<>),
                         DtoPropertyName = "Data"
                     },
-                    ignoreDateTimeComparison: true
+                    ignoreDateTimeComparison: true,
+                    outputTestsAndConfigurationAsJson: true
                 )
             {
                 

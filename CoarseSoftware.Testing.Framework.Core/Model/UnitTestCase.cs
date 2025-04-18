@@ -1,6 +1,7 @@
 ﻿namespace CoarseSoftware.Testing.Framework.Core
 {
     using Microsoft.Extensions.DependencyInjection;
+    using System.Text.Json.Serialization;
 
     /// <summary>
     /// A unit test case
@@ -29,6 +30,7 @@
         /// <summary>
         /// Used to register services that are not mocked or supplied from Hostings.  ie; unit of work...
         /// </summary>
+        [JsonIgnore]
         public Action<IServiceCollection> ServiceRegistration { get; set; }
 
         /// <summary>
@@ -155,6 +157,7 @@
         /// Used to register services.
         /// Note: if you want to overwrite a facet (ie; mock resource), register it last.  This way, if anything registers an instance, the last registration will win.
         /// </summary>
+        [JsonIgnore]
         public Action<IServiceCollection> ServiceRegistration { get; set; }
 
         /// <summary>

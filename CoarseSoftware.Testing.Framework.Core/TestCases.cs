@@ -8,6 +8,9 @@
     using NUnit.Framework;
     using System;
     using System.Threading.Tasks;
+    using System.Collections.Generic;
+    using CoarseSoftware.Testing.Framework.Core.Serializer;
+    using System.Text.Json.Serialization;
 
     [TestFixture]
     [Ignore("Abstract")]
@@ -1091,9 +1094,14 @@
                 }
             };
 
+            IEnumerable<UnitTestCase> testCasesForJson = Enumerable.Empty<UnitTestCase>();
+            IEnumerable<ClientTestCase> clientTestCasesForJson = Enumerable.Empty<ClientTestCase>();
+            IEnumerable<IntegrationTestCase> integrationTestCasesForJson = Enumerable.Empty<IntegrationTestCase>();
+
             foreach (var testCaseType in testCaseTypes)
             {
                 var testCaseEnumerable = Activator.CreateInstance(testCaseType) as IEnumerable<UnitTestCase>;
+                testCasesForJson = testCaseEnumerable.ToList();
                 if (testCaseEnumerable == null)
                 {
                     throw new Exception($"Could not create instance for type {testCaseType.FullName}");
@@ -1121,6 +1129,7 @@
             foreach (var testCaseType in clientTestCases)
             {
                 var testCaseEnumerable = Activator.CreateInstance(testCaseType) as IEnumerable<ClientTestCase>;
+                clientTestCasesForJson = testCaseEnumerable.ToList();
                 if (testCaseEnumerable == null)
                 {
                     throw new Exception($"Could not create instance for type {testCaseType.FullName}");
@@ -1142,6 +1151,7 @@
             foreach (var testCaseType in integrationTestCaseTypes)
             {
                 var testCaseEnumerable = Activator.CreateInstance(testCaseType) as IEnumerable<IntegrationTestCase>;
+                integrationTestCasesForJson = testCaseEnumerable.ToList();
                 if (testCaseEnumerable == null)
                 {
                     throw new Exception($"Could not create instance for type {testCaseType.FullName}");
@@ -1173,12 +1183,57 @@
             }
             // @TODO - all tests have run.  Now we can compare the dtos.
 
+            tryOutputTestsAndConfigurationAsJson(testCasesForJson, clientTestCasesForJson, integrationTestCasesForJson);
+
             if (!integrationTestCaseTypes.Any())
             {
                 writeSystemResults.Invoke();
             }
 
             
+        }
+
+        private static void tryOutputTestsAndConfigurationAsJson(
+            IEnumerable<UnitTestCase> testCasesForJson,
+            IEnumerable<ClientTestCase> clientTestCasesForJson,
+            IEnumerable<IntegrationTestCase> integrationTestCasesForJson
+            )
+        {
+            var config = Helpers.GetTestRunnerConfiguration();
+            if (!config.OutputTestsAndConfigurationAsJson)
+            {
+                return;
+            }
+            var outputResultsFilePath = InternalTestRunnerConfiguration.SystemResultsOutputPath; // Environment.GetEnvironmentVariable("CoarseSoftwareSystemResults");
+
+            if (!string.IsNullOrEmpty(outputResultsFilePath))
+            {
+
+                dynamic systemResults = new 
+                {
+                    // when writing to testStatStore, we need to check for message and add the item to a new model to represent that
+                    TestCases = testCasesForJson,
+                    //clientTestCases = clientTestCasesForJson,
+                    //integrationTestCases = integrationTestCasesForJson,
+                    Configuration = config
+                };
+
+                string textPath = Path.Combine(outputResultsFilePath, "CoarseSoftware-TestsAndConfigs.json");
+
+                string json =
+                    JsonSerializer.Serialize(systemResults, new JsonSerializerOptions
+                    {
+                        WriteIndented = true,
+                        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+                        Converters = 
+                        { 
+                            new TypeJsonConverter(), 
+                            new UnitTestCaseJsonConverter() 
+                        }
+                    }); //, Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping });
+
+                File.WriteAllText(textPath, $"{json}");
+            }
         }
 
         private static IEnumerable<Type> getTestCaseTypes()
