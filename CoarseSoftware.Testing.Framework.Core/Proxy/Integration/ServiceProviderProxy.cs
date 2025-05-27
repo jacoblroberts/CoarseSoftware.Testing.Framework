@@ -19,24 +19,28 @@
         {
             var serviceType = args[0] as Type;
 
+            var serviceTypeName = serviceType.IsGenericType
+                ? serviceType.FullName.Substring(0 , serviceType.FullName.IndexOf('`'))
+                : serviceType.FullName;
+
             var businessService = BusinessService.None;
-            if (configuration.Wildcard.UtilityFacetWildCards.Where(w => !string.IsNullOrEmpty(w) && serviceType.FullName.Contains(w)).Any())
+            if (configuration.Wildcard.UtilityFacetWildCards.Where(w => !string.IsNullOrEmpty(w) && serviceTypeName.Contains(w)).Any())
             {
                 businessService = BusinessService.Utility;
             }
-            else if (configuration.Wildcard.ManagerFacetWildCards.Where(w => !string.IsNullOrEmpty(w) && serviceType.FullName.Contains(w)).Any())
+            else if (configuration.Wildcard.ManagerFacetWildCards.Where(w => !string.IsNullOrEmpty(w) && serviceTypeName.Contains(w)).Any())
             {
                 businessService = BusinessService.Manager;
             }
-            else if (configuration.Wildcard.EngineFacetWildCards.Where(w => !string.IsNullOrEmpty(w) && serviceType.FullName.Contains(w)).Any())
+            else if (configuration.Wildcard.EngineFacetWildCards.Where(w => !string.IsNullOrEmpty(w) && serviceTypeName.Contains(w)).Any())
             {
                 businessService = BusinessService.Engine;
             }
-            else if (configuration.Wildcard.AccessFacetWildCards.Where(w => !string.IsNullOrEmpty(w) && serviceType.FullName.Contains(w)).Any())
+            else if (configuration.Wildcard.AccessFacetWildCards.Where(w => !string.IsNullOrEmpty(w) && serviceTypeName.Contains(w)).Any())
             {
                 businessService = BusinessService.Access;
             }
-            else if (configuration.Wildcard.ResourceFacetWildCards.Where(w => !string.IsNullOrEmpty(w) && serviceType.FullName.Contains(w)).Any())
+            else if (configuration.Wildcard.ResourceFacetWildCards.Where(w => !string.IsNullOrEmpty(w) && serviceTypeName.Contains(w)).Any())
             {
                 businessService = BusinessService.Resource;
             }
