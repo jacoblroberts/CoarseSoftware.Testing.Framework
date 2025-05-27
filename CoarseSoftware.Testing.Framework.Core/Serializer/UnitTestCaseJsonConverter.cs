@@ -132,12 +132,20 @@
                 return "null";
             }
             var responseType = response.GetType();
+            if (responseType == null) 
+            { 
+                return "null"; 
+            }
             var isRequestWrapped = configuration.ResponseWrapper != null
                     && responseType.IsGenericType
                     && responseType.GetGenericTypeDefinition() == configuration.ResponseWrapper.OpenWrapperType;
             var responseData = isRequestWrapped
                  ? responseType.GetProperty(configuration.ResponseWrapper.DtoPropertyName).GetValue(response)
                  : response;
+            if (responseData == null)
+            {
+                return "null";
+            }
             return responseData.GetType().FullName;
         }
     }
